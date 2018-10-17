@@ -1,4 +1,3 @@
-import com.kuainiu.beidou.statistic.SampleStatistic
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.feature.QuantileDiscretizer
 import org.apache.spark.mllib.util.MLUtils
@@ -37,9 +36,6 @@ object SparkDataFrame extends App {
   val zerowhere = "case when id=0 then 1 else 0 end"
   val nullwhere = "case when id is null or trim(id)='' then 1 else 0 end"
 
-  val qs = SampleStatistic.quantile(df, "id", Array(0.25, 0.5, 0.75))
-  val eachP = SampleStatistic.eachValPercent(df, "id").toDF("key", "value")
-  eachP.show() //like follow
 //  +-----+-------------------+
 //  |   _1|                 _2|
 //  +-----+-------------------+
@@ -58,7 +54,7 @@ object SparkDataFrame extends App {
 
   //flatMap((row: Row) => row.getList[Map[Int,String]](1).toArray() )
 //  select uid, lid, concat_ws(':',collect_set(mid)) as mids from test group by uid,lid
-  eachP.createOrReplaceTempView("each_table")
+
 
  val st =  sql("select concat_ws(',',key,value) as eacheP from each_table")
 //  +--------------------+

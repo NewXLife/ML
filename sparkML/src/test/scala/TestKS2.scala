@@ -1,5 +1,7 @@
 import util.SparkTools
 
+import scala.collection.mutable.ArrayBuffer
+
 object TestKS2 extends SparkTools {
   val base1 = loadCSVData("csv", "E:\\NewX\\newX\\bd-engine\\docs\\20180814_old_tdbase.csv")
 //  base1.show(10)
@@ -41,7 +43,6 @@ object TestKS2 extends SparkTools {
 //  StatisticCenter.apply.PSI(11,11,111, pre, base1, baseFeatureList.toArray )
 
   //base
-  StatisticCenter.apply.sample(pre, baseFeatureList.toArray, 100, 100, "d7", base1, baseFeatureList.toArray, "statistic_sample_base_index","d14")
 
 //  val qd = new QuantileDiscretizer().setInputCol("1month").setOutputCol("new")
 //    .setNumBuckets(10)      //设置分箱数

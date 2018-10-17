@@ -22,12 +22,6 @@
 
     <dependencies>
 
-        <dependency>
-            <groupId>com.kuainiu.beidou</groupId>
-            <artifactId>bd-model</artifactId>
-            <version>${bd-model-version}</version>
-        </dependency>
-
 
         <dependency>
             <groupId>org.apache.livy</groupId>
@@ -132,66 +126,6 @@
     </dependencies>
 
 
-    <profiles>
-        <profile>
-            <id>dev</id>
-            <properties>
-                <repository.id>model-snapshot</repository.id>
-                <repository.name>model-snapshot</repository.name>
-                <repository.url>http://jcenter.kuainiujinke.com/artifactory/ai-model-repo-snapshot</repository.url>
-            </properties>
-            <repositories>
-                <repository>
-                    <id>kuainiu-snapshots</id>
-                    <url>http://jcenter.kuainiujinke.com/artifactory/libs-snapshot</url>
-                </repository>
-                <repository>
-                    <id>kuainiu-release</id>
-                    <url>http://jcenter.kuainiujinke.com/artifactory/libs-release</url>
-                </repository>
-            </repositories>
-            <dependencyManagement>
-            </dependencyManagement>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-        </profile>
-        <!-- 正式环境（releases环境） -->
-        <profile>
-            <id>prod</id>
-            <properties>
-                <repository.id>model-release</repository.id>
-                <repository.name>model-release</repository.name>
-                <repository.url>http://jcenter.kuainiujinke.com/artifactory/ai-model-repo-release</repository.url>
-            </properties>
-            <repositories>
-                <repository>
-                    <id>kuainiu-release</id>
-                    <url>http://jcenter.kuainiujinke.com/artifactory/libs-release</url>
-                    <snapshots>
-                        <enabled>true</enabled>
-                    </snapshots>
-                </repository>
-
-            </repositories>
-
-            <dependencyManagement>
-                <dependencies>
-
-                </dependencies>
-            </dependencyManagement>
-        </profile>
-    </profiles>
-
-    <distributionManagement>
-        <repository>
-            <id>${repository.id}</id>
-            <name>${repository.name}</name>
-            <url>${repository.url}</url>
-            <layout>default</layout>
-        </repository>
-    </distributionManagement>
-
     <build>
         <!--<finalName>doorApp</finalName>-->
         <plugins>
@@ -246,7 +180,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <outputFile>${project.build.directory}/shaded/dubhe-ml-${project.version}-shaded.jar</outputFile>
+                            <outputFile>${project.build.directory}/shaded/ml-${project.version}-shaded.jar</outputFile>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>

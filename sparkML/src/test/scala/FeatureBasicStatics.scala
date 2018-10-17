@@ -1,4 +1,7 @@
+import com.niuniuzcd.demo.util.DataFrameUtil
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
+import scala.collection.mutable.ListBuffer
 
 /**
   * create by colin on 2018/7/12
@@ -94,34 +97,6 @@ object FeatureBasicStatics extends App {
   val num_val = 5
 
 
-
-
-
-  def scatter(df: DataFrame, col: String) = {
-    var ListScatter: ListBuffer[ScatterIndex] = ListBuffer[ScatterIndex]()
-    //id号
-    val id = "db_tb" + col
-
-    //记录数
-    val records = df.select(df(s"$col")).count()
-
-    //取不同值数目（排除空值计算）
-    val diff_val_count = df.select(df(s"$col")).where(df(s"$col") === "" or df(s"$col") === null)
-      .groupBy(df(s"$col")).count().map(x => (x.get(0).asInstanceOf[Double], x.get(1).asInstanceOf[Long])).toString()
-
-    //众数(取值和占记录数比例，排除空值计算)
-    val mode = df.select(df(s"$col")).where(df(s"$col") === "" or df(s"$col") === null).groupBy(df(s"$col")).count().map(x => (x.get(0), x.get(1).asInstanceOf[Long] / records)).toString()
-
-    //空值占比
-    val null_percent = df.select(df(s"$col")).where(df(s"$col") === "" or df(s"$col") === null).count() / records
-
-    //每个取值的占比（全量计算）
-    val each_val_percent = df.select(df(s"$col")).groupBy(df(s"$col")).count().map(x => (x.get(0), x.get(1).asInstanceOf[Long] / records)).toString()
-
-    ListScatter += ScatterIndex(id, records, diff_val_count, mode, null_percent, each_val_percent)
-  }
-
-
   //包括 计数count, 平均值mean, 标准差stddev, 最小值min, 最大值max。如果cols给定，那么这个函数计算统计所有数值型的列
   //  df.describe("id","name").show()
   //  +-------+---+----+
@@ -165,52 +140,6 @@ object FeatureBasicStatics extends App {
                            three_quartiles: Double
                           )
 
-  def conStat(df: DataFrame, col: String) = {
-    var ListScatter: ListBuffer[ScatterIndex] = ListBuffer[ScatterIndex]()
-    //id号
-    val id = "db_tb" + col
 
-    //记录数
-    val records = df.select(df(s"$col")).count()
-    val recordsNotNull = df.select(df(s"$col")).where(df(s"$col") === "" or df(s"$col") === null).count()
-
-    //均值
-    val mean = df.agg(s"$col" -> "sum").first().get(0).asInstanceOf[Long] / recordsNotNull
-
-    //中位数(排除空值计算)
-    val newDf = df.select(col).where(df(s"$col") === "" or df(s"$col") === null).sort(df(s"$col"))
-    val indexDf = DataFrameUtil.addIndexDf(newDf, col)
-    indexDf.cache()
-    val max_index = recordsNotNull - 1L
-    val medium_index = genIndex(0) _
-    val medium = oddEvenProcess(indexDf, s"$col", medium_index(max_index))
-
-
-    //min，max
-    val min = df.where(df(s"$col") === "" or df(s"$col") === null).agg(s"$col" -> "min").first().get(0)
-    val max = df.where(df(s"$col") === "" or df(s"$col") === null).agg(s"$col" -> "max").first().get(0)
-
-
-    //25%分位点，75%分位点
-    val max_index_contain_na = records - 1L
-    val newDf1 = df.select(col).sort(df(s"$col"))
-    val indexDf1 = DataFrameUtil.addIndexDf(newDf1, col)
-
-    val p25_right_index = medium_index(max_index_contain_na) / 2 - 1
-    val quartiles_exclude_null = oddEvenProcess(indexDf1, s"$col", p25_right_index)
-
-    val p75_left_index = genIndex(medium_index(max_index_contain_na))(max_index_contain_na)
-    val three_quartiles_exclude_null = oddEvenProcess(indexDf1, s"$col", p75_left_index)
-
-
-    //25%分位点，75%分位点（排除空值计算）
-    val p25_index = medium_index(max_index) / 2 - 1
-    val quartiles = oddEvenProcess(indexDf, s"$col", p25_index)
-    val p75_index = genIndex(medium_index(max_index)) _
-    val three_quartiles = oddEvenProcess(indexDf, s"$col", p75_index(max_index))
-
-  }
-
-    df.dtypes.map { case (col, t) => if (t.isInstanceOf[String] || df.select(s"$col").distinct().count() <= num_val) scatter(df, col) else conStat(df, col) }.map { case (f, v) => (f, v) }
 }
 

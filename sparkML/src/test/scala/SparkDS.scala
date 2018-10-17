@@ -1,5 +1,7 @@
 import java.util.Properties
 
+import org.apache.spark.sql.SparkSession
+
 object SparkDS extends App {
 
   val spark = SparkSession.builder().appName("test-ds").master("local[*]").getOrCreate()
