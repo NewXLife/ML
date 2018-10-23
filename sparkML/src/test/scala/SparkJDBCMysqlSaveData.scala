@@ -9,7 +9,7 @@ import org.apache.spark.sql.SparkSession
   * 或者在${SPARK_HOME}/conf目录下的spark-defaults.conf中添加：spark.jars /opt/lib/mysql-connector-java-5.1.26-bin.jar
   * 流式使用kafka 處理的時候，注意kafka版本
   */
-object SparkJDBCMysqlSaveData extends App {
+private[test] object SparkJDBCMysqlSaveData extends App {
   val spark = SparkSession.builder().master("local[*]").appName("testJDBC").getOrCreate()
   // Note: JDBC loading and saving can be achieved via either the load/save or jdbc methods
   // Loading data from a JDBC source
@@ -19,7 +19,7 @@ object SparkJDBCMysqlSaveData extends App {
   connectionProperties.put("user", "root")
   connectionProperties.put("password", "123")
 
-  val jdbcDF2 = spark.createDataFrame(Seq((3,"2018-05-13","2018-05-13",0,"2018-05-13"))).toDF("sta_id", "sta_start","sta_end","sta_status","update_time")
+  val jdbcDF = spark.createDataFrame(Seq((3,"2018-05-13","2018-05-13",0,"2018-05-13"))).toDF("sta_id", "sta_start","sta_end","sta_status","update_time")
   jdbcDF2.show()
 
   val url = "jdbc:mysql://172.16.38.128:3306/beidou?useUnicode=true&amp;characterEncoding=utf-8"
@@ -33,39 +33,39 @@ object SparkJDBCMysqlSaveData extends App {
   jdbcDF2.write.mode("append")
     .jdbc(url, db_table, connectionProperties)
 
-  // Saving data to a JDBC source
-//  df.write
-//    .format("jdbc")
-//    .option("url", "jdbc:postgresql:dbserver")
-//    .option("dbtable", "schema.tablename")
-//    .option("user", "username")
-//    .option("password", "password")
-//    .save()
+//   Saving data to a JDBC source
+  jdbcDF2.write
+    .format("jdbc")
+    .option("url", "jdbc:postgresql:dbserver")
+    .option("dbtable", "schema.tablename")
+    .option("user", "username")
+    .option("password", "password")
+    .save()
 
 
   //  // Specifying the custom data types of the read schema
-  //  connectionProperties.put("customSchema", "id DECIMAL(38, 0), name STRING")
-  //  val jdbcDF3 = spark.read
-  //    .jdbc("jdbc:postgresql:dbserver", "schema.tablename", connectionProperties)
+    connectionProperties.put("customSchema", "id DECIMAL(38, 0), name STRING")
+    val jdbcDF4 = spark.read
+      .jdbc("jdbc:postgresql:dbserver", "schema.tablename", connectionProperties)
 
 
-//
-//  val jdbcDF2 = spark.read
-//    .jdbc("jdbc:mysql://172.16.38.128:3306/beidou?useUnicode=true&amp;characterEncoding=utf-8", "beidou.QRTZ_TRIGGERS", connectionProperties)
 
-  // Specifying create table column data types on write
+  val jdbcDF2 = spark.read
+    .jdbc("jdbc:mysql://172.16.38.128:3306/beidou?useUnicode=true&amp;characterEncoding=utf-8", "beidou.QRTZ_TRIGGERS", connectionProperties)
 
-  //    val jdbcDF = spark.read
-  //      .format("jdbc")
-  //      .option("url", "jdbc:postgresql:dbserver")
-  //      .option("dbtable", "schema.tablename")
-  //      .option("user", "username")
-  //      .option("password", "password")
-  //      .load()
-  //
+//   Specifying create table column data types on write
+
+      val jdbcDF3 = spark.read
+        .format("jdbc")
+        .option("url", "jdbc:postgresql:dbserver")
+        .option("dbtable", "schema.tablename")
+        .option("user", "username")
+        .option("password", "password")
+        .load()
 
 
-  //  jdbcDF.write
-  //    .option("createTableColumnTypes", "name CHAR(64), comments VARCHAR(1024)")
-  //    .jdbc("jdbc:postgresql:dbserver", "schema.tablename", connectionProperties)
+
+    jdbcDF.write
+      .option("createTableColumnTypes", "name CHAR(64), comments VARCHAR(1024)")
+      .jdbc("jdbc:postgresql:dbserver", "schema.tablename", connectionProperties)
 }

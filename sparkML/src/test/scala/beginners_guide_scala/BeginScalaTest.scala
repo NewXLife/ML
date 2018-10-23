@@ -1,10 +1,6 @@
 package beginners_guide_scala
 
-import org.eigenbase.util.property.Trigger.VetoRT
-
 import scala.annotation.implicitNotFound
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 
 /**
@@ -26,10 +22,7 @@ class Buser(val name: String, val score: Int, val upgrade: Double) extends User
 
 object Buser {
   def apply(name: String, score: Int, upgrade: Double) = new Buser(name, score, upgrade)
-
   def unapply(arg: Buser): Option[(String, Int, Double)] = Some((arg.name, arg.score, arg.upgrade))
-
-  //  def unapply(arg: Buser): Boolean = arg.upgrade > 0.75
 }
 
 /**

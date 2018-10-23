@@ -5,7 +5,7 @@ import scala.collection.mutable.ArrayBuffer
 /**
   * create by colin on 2018/7/12
   */
-object FeatureCutPcutDT extends App {
+object FeatureCutPcutDTLikePython extends App {
   val spark = SparkSession.builder().appName("test-ds").master("local[*]").getOrCreate()
   //          Logger.getLogger("org.apache.spark").setLevel(Level.ERROR)
   spark.sparkContext.setLogLevel("ERROR")
@@ -47,10 +47,7 @@ object FeatureCutPcutDT extends App {
       if (right) bins(0) -= adj else bins(bins.length - 1) += adj
       bins
     }
-
-    //    bins.toArray
   }
-
 
   def linspace2(start: Double, stop: Double, num: Int = 10, endpoint: Boolean = true) = {
     require(num > 0, "Number of samples, %s, must be non-negative.")
@@ -68,7 +65,6 @@ object FeatureCutPcutDT extends App {
     }
     ab
   }
-
 
   def linspace(start: Double, stop: Double, num: Int = 10, endpoint: Boolean = true) = {
     require(num > 0, "Number of samples, %s, must be non-negative.")

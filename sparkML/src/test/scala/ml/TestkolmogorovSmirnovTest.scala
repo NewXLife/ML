@@ -1,3 +1,5 @@
+package ml
+
 import com.niuniuzcd.demo.util.Tools
 import util.SparkTools
 

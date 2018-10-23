@@ -1,9 +1,10 @@
 import java.io.File
 import java.net.URI
 
+import beginners_guide_scala.TrySuccessFailureTest
 import org.apache.livy.LivyClientBuilder
 
-object ExampleApp extends App {
+object TestLivySubmitExample extends App {
 
 
   val client = new LivyClientBuilder()
@@ -24,7 +25,7 @@ object ExampleApp extends App {
         client.uploadJar(new File(x)).get()
         System.out.println("upload successful")
       }
-      client.submit(new Example())
+      client.submit(new TrySuccessFailureTest())
     }
     }
 
