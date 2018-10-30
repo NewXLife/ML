@@ -6,7 +6,7 @@ import util.SparkTools
 object BinningTest extends SparkTools{
   baseDf.show(5, truncate = false)
 
-  //等频分箱
+  //等频分箱，等同pandas 的pcut
 //  val qd = new QuantileDiscretizer().setInputCol("m1").setOutputCol("q7day")
 //    .setNumBuckets(10)      //设置分箱数
 //    .setRelativeError(0) //设置precision-控制相对误差,设置为0时，将会计算精确的分位点（计算代价较高）。
@@ -19,11 +19,21 @@ object BinningTest extends SparkTools{
 //
 //  spark.stop()
 
-  //等距离分箱
+  //等距离分箱,等同pandas 的cut
+  /**
+    * 桶必须是排好序的，并且不包含重复元素，至少有两个元素
+    */
   val a = spark.sparkContext.parallelize(List(1.1,1.2,1.3,2.0,2.1,7.4,7.5,7.6,8.8,9.0),3)
   val (bucket, ct )  = a.histogram(5)
   bucket.foreach(println(_))
-
+  /**
+    * 1.1
+    * 2.68
+    * 4.26
+    * 5.84
+    * 7.42
+    * 9.0
+    */
 
   //决策树分箱
 
