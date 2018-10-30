@@ -5,7 +5,8 @@ import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.SparkSession
 
 /**
-  * The Discrete Cosine Transform transforms a length N real-valued sequence in the time domain
+  * 离散余弦变换
+  * The （Discrete Cosine Transform）DCT transforms a length N real-valued sequence in the time domain
   * into another length N real-valued sequence in the frequency domain.
   * A DCT class provides this functionality,
   * implementing the DCT-II and scaling the result by 1/2‾√ such that the representing matrix for the transform is unitary.

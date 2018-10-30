@@ -1,0 +1,18 @@
+{
+	"st": {
+		"method": "SelectFromModel",
+		"params": {
+			"estimator": {
+				"estimator": "XGBClassifier",
+				"params": {
+					
+				}
+			},
+			"threshold": "0.1*mean"
+		}
+	},
+	"ds": "#state(${prevId},ds)",
+	"out": {
+		"dst": "/model/${flowId}/${nodeId}"
+	}
+}

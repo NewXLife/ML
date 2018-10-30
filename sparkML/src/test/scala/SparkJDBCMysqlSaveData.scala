@@ -9,7 +9,7 @@ import org.apache.spark.sql.SparkSession
   * 或者在${SPARK_HOME}/conf目录下的spark-defaults.conf中添加：spark.jars /opt/lib/mysql-connector-java-5.1.26-bin.jar
   * 流式使用kafka 處理的時候，注意kafka版本
   */
-private[test] object SparkJDBCMysqlSaveData extends App {
+ object SparkJDBCMysqlSaveData extends App {
   val spark = SparkSession.builder().master("local[*]").appName("testJDBC").getOrCreate()
   // Note: JDBC loading and saving can be achieved via either the load/save or jdbc methods
   // Loading data from a JDBC source

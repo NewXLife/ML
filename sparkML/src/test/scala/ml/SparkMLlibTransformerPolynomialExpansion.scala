@@ -5,6 +5,7 @@ import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.SparkSession
 
 /**
+  * 多项式扩展:是将n维的原始特征组合扩展到多项式空间的过程
   * Polynomial expansion is the process of expanding your features into a polynomial space,
   * which is formulated by an n-degree combination of original dimensions.
   * A PolynomialExpansion class provides this functionality.

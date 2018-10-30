@@ -1,0 +1,15 @@
+{
+	"st": {
+		"method": "oot",
+		"test_size": 0.2,
+		"random_state": 7,
+		"time_col": "apply_risk_created_at",
+		"index_col": "apply_risk_id",
+		"label_col": "overdue_days",
+		"py_split": "true"
+	},
+	"ds": "#state(${prevId},ds)",
+	"out": {
+		"dst": "/model/${flowId}/${nodeId}"
+	}
+}

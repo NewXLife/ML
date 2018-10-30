@@ -34,6 +34,7 @@ object SparkMLlibTransformerVectorIndexer extends App{
 
   //Indicates whether to perform the inverse DCT (true) or forward DCT (false).
   //Default: false
+  //具有大于5个不同值的特征被视为连续
   val vf = new VectorIndexer().setInputCol("features").setOutputCol("indexfeatures").setMaxCategories(5).fit(df)
 
   val res = vf.transform(df)
@@ -58,7 +59,19 @@ object SparkMLlibTransformerVectorIndexer extends App{
   结果分析：特征向量包含3个特征，即特征0，特征1，特征2。如Row=1,对应的特征分别是2.0,5.0,7.0.被转换为2.0,1.0,1.0。
   我们发现只有特征1，特征2被转换了，特征0没有被转换。这是因为特征0有6种取值（2，3，4，5，8，9），多于前面的设置setMaxCategories(5)
   ，因此被视为连续值了，不会被转换。
-  特征1中，（4，5，6，7，9）-->(0,1,2,3,4)
-  特征2中,  (2,7,9)-->(0,1,2)
+  特征1中，列向量（4，5，6，7，9）有5个数，被视为离散值，需要重新编码为-->(0,1,2,3,4)，所以5 的索引是 1
+  特征2中, 列向量 (2,7,9)-->(0,1,2)所以7 的索引是 1
+
+  特征1：
+  5.0  -> 1.0
+  5.0  -> 1.0
+  7.0  -> 3.0
+  4.0  -----
+  5.0
+  5.0
+  4.0
+  5.0
+  6.0
+  9.0
    */
 }

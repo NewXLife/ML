@@ -1,6 +1,6 @@
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.feature.QuantileDiscretizer
-import org.apache.spark.sql.{Row, SparkSession, functions}
+import org.apache.spark.sql.SparkSession
 
 import org.apache.spark.sql.functions._
 

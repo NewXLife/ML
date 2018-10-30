@@ -1,23 +1,12 @@
 ///**
-//  * create by colin on 2018/7/23
-//  */
-//
-//import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostClassificationModel}
-//import org.apache.spark.SparkConf
-//import ml.dmlc.xgboost4j.scala.Booster
-//import org.apache.spark.ml.feature.VectorAssembler
-//import org.apache.spark.mllib.linalg.Vectors
-//import org.apache.spark.mllib.regression.LabeledPoint
-//import org.apache.spark.mllib.util.MLUtils
-//import org.apache.spark.sql.SparkSession
-//
-///**
 //    * create by colin on 2018/7/23
 //    */
 //
+//  import ml.dmlc.xgboost4j.java.XGBoost
 //  import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostClassificationModel}
 //  import org.apache.spark.SparkConf
 //  import ml.dmlc.xgboost4j.scala.Booster
+//  import org.apache.spark.ml.feature.VectorAssembler
 //  import org.apache.spark.mllib.linalg.Vectors
 //  import org.apache.spark.mllib.regression.LabeledPoint
 //  import org.apache.spark.sql.SparkSession

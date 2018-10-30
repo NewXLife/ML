@@ -1,0 +1,55 @@
+{
+	"st": {
+		"cate": [{
+			"encoders": [{
+				"method": "BaseEncoder",
+				"params": {
+					"cate_thr": 0.5,
+					"missing_thr": 0.8,
+					"same_thr": 0.9
+				}
+			},
+			{
+				"method": "CountEncoder",
+				"params": {
+					"log_transform": true,
+					"unseen_value": 1,
+					"smoothing": 1
+				}
+			}],
+			"cols": []
+		}],
+		"method": "auto",
+		"params": {
+			"thr": 5
+		},
+		"cont": [{
+			"encoders": [{
+				"method": "BaseEncoder",
+				"params": {
+					"cate_thr": 0.5,
+					"missing_thr": 0.8,
+					"same_thr": 0.9
+				}
+			}],
+			"cols": []
+		}],
+		"custom": [{
+			"cols": ["equipment_app_name"],
+			"encoders": [{
+				"method": "AppCateEncoder",
+				"params": {
+					"cate_dict": "#cate_dict_path(2)",
+					"delimiter": "|",
+					"prefix": "app_",
+					"unknown": "unknown"
+				}
+			}]
+		}],
+		"verbose": true
+	},
+	"ds": "#state(${prevId},ds)",
+	"out": {
+		"dst": "/model/${flowId}/${nodeId}"
+	}
+}
