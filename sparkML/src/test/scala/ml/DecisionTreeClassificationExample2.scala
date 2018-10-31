@@ -43,8 +43,8 @@ object DecisionTreeClassificationExample2 {
     println(model.numClasses)
     println(model.numFeatures)
     println(model.numNodes)
-
     println(model.rootNode.impurity)
+
     spark.stop()
   }
 }

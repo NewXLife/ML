@@ -36,11 +36,11 @@
         </dependency>
 
 
-        <dependency>
-            <groupId>com.github.hirofumi</groupId>
-            <artifactId>xgboost4j_2.11</artifactId>
-            <version>0.7.1-p1</version>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>com.github.hirofumi</groupId>-->
+            <!--<artifactId>xgboost4j_2.11</artifactId>-->
+            <!--<version>0.7.1-p1</version>-->
+        <!--</dependency>-->
 
 
         <dependency>
@@ -57,11 +57,15 @@
         </dependency>
 
 
-        <!--<dependency>-->
-        <!--<groupId>ml.dmlc</groupId>-->
-        <!--<artifactId>xgboost4j-spark</artifactId>-->
-        <!--<version>${xgb-version}</version>-->
-        <!--</dependency>-->
+        <!-- https://mvnrepository.com/artifact/ml.dmlc/xgboost4j -->
+        <!-- https://mvnrepository.com/artifact/ml.dmlc/xgboost4j-spark -->
+        <dependency>
+            <groupId>ml.dmlc</groupId>
+            <artifactId>xgboost4j-spark</artifactId>
+            <version>0.72</version>
+        </dependency>
+
+
 
         <!--https://mvnrepository.com/artifact/com.google.code.gson/gson-->
         <dependency>

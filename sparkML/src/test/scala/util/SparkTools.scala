@@ -15,6 +15,7 @@ trait SparkTools extends App{
   import spark.implicits._
 
   val tempDf = loadCSVData("csv", "C:\\NewX\\newX\\MachineLearning\\docs\\testData\\base.csv")
+  val tempLaoke = loadCSVData("csv", "C:\\NewX\\newX\\MachineLearning\\docs\\testData\\laoke_online.csv")
 
   val columns = tempDf.columns.toBuffer
 
