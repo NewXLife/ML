@@ -716,10 +716,15 @@ object XgboostTest extends SparkTools {
 
   vecDf.show(10, truncate = false)
 
+
+  def dfSpliter(df: String, label:String, report_dst: String, time_col: String="biz_report_expect_at", index_col:String ="apply_risk_id", label_col:String="overdue_days", test_size:Double=0.2, method:String="oot", random_state:Int=7)={
+
+  }
+
+  //spliter parameters
   val Array(trainData, testData) = vecDf.randomSplit(Array( 1- splitPara, splitPara))
 
-//  val numRound = 800
-//  require(numRound > 10, "numRound must bigger than ten")
+  //feature transform
 
   val paramMap = List(
     "eta" -> 0.1f,
