@@ -7,6 +7,9 @@ import util.SparkTools
 object BinningTest extends SparkTools{
   baseDf.show(5, truncate = false)
 
+  println(baseDf.rdd.getClass.getSimpleName)
+  println(baseDf.rdd.flatMap(_.toSeq).getClass.getSimpleName)
+
 //  等频分箱，等同pandas 的pcut
   val qd = new QuantileDiscretizer().setInputCol("m1").setOutputCol("q7day")
     .setNumBuckets(10)      //设置分箱数
@@ -22,6 +25,7 @@ object BinningTest extends SparkTools{
     * 桶必须是排好序的，并且不包含重复元素，至少有两个元素
     */
   val a = spark.sparkContext.parallelize(List(1.1,1.2,1.3,2.0,2.1,7.4,7.5,7.6,8.8,9.0),3)
+  println(a.getClass.getSimpleName)
   // 入参是一个数/或者是一个数组
   // 先用排好序的数组的边界值来得出两个桶之间的间距
   // 如果是一个数组 表示： [1, 10, 20, 50] the buckets are [1, 10) [10, 20) [20, 50]

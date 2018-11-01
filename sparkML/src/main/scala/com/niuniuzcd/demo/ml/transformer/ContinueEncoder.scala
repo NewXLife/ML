@@ -1,9 +1,9 @@
 package com.niuniuzcd.demo.ml.transformer
 
+import org.apache.spark.ml.classification.DecisionTreeClassifier
+import org.apache.spark.ml.feature.{QuantileDiscretizer, VectorAssembler}
+import org.apache.spark.rdd.ParallelCollectionRDD
 import org.apache.spark.sql.DataFrame
-
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.{immutable, mutable}
 
 /**
   * 将连续型变量转化为离散型
@@ -27,127 +27,81 @@ import scala.collection.{immutable, mutable}
   *
   * 决策树分箱方法使用的决策树参数
   */
-class ContinueEncoder {
-  private val DEFAULT_BINS = 10
-
-  def bins2cuts(df: DataFrame, bins: mutable.Buffer[Double], right:Boolean = true): Unit = {
-    val unique_bins = bins.toArray.distinct
-    require(unique_bins.length == bins.length && bins.length !=2, "Bin edges must be unique.")
-
-    val side =  if (right) "left" else "right"
-
-  }
-
-  def getCatalog(df: DataFrame, col: String, binsNum: Int = DEFAULT_BINS): immutable.IndexedSeq[(String, String)] = {
-    val bins = cut(df, col, binsNum)
-    for( i <- 0 until bins.length -1) yield (bins(i).formatted("%.3f"), bins(i+1).formatted("%.3f"))
-  }
-
-  def getCatalogDouble(df: DataFrame, col: String, binsNum: Int = DEFAULT_BINS): Array[(Double, Double)] = {
-    val bins = cut(df, col, binsNum)
-    val res = for( i <- 0 until bins.length -1) yield (bins(i), bins(i+1))
-    res.toArray
-  }
-
-  def getBinsArray(bins:Array[Double]):Array[(Double, Double)] = {
-    val res = for (i <- 0 until bins.length - 1) yield (bins(i), bins(i + 1))
-    res.toArray
-  }
-
-  def cut(df: DataFrame, col: String, binsNum: Int = DEFAULT_BINS, right: Boolean = true): mutable.Buffer[Double] = {
-    var mn = min(df, col)
-    var mx = max(df, col)
-
-    if (mn == mx) {
-      mn = mn - (if (mn != 0).001 * math.abs(mn) else .001)
-      mx = mx + (if (mx != 0).001 * math.abs(mx) else .001)
-      linspace(mn, mx, binsNum + 1)
-    } else {
-      val t_bins = linspace(mn, mx, binsNum + 1)
-      val adj = (mx - mn) * 0.001
-      if (right) t_bins(0) -= adj else t_bins(t_bins.length - 1) += adj
-      t_bins
-    }
-  }
-
+class ContinueEncoder(var df: DataFrame, val bins:Int = 10) {
+  private final val spark = df.sparkSession
+  import spark.implicits._
 
 
   /**
-    * the other way
-    * @param start
-    * @param stop
-    * @param num
-    * @param endpoint
-    * @return
+    * 等距离分箱,等同pandas 的cut
+    * 桶必须是排好序的，并且不包含重复元素，至少有两个元素
     */
-  def linspace2(start: Double, stop: Double, num: Int = DEFAULT_BINS, endpoint: Boolean = true): ArrayBuffer[Double] = {
-    require(num > 0, "Number of samples, %s, must be non-negative.")
 
-    val div = if (endpoint) num - 1 else num
 
-    val delta = stop - start
-    val d = delta / div
-
-    val ab = ArrayBuffer[Double]()
-    var cut_point = start
-    for (_ <- 0 until div) {
-      ab += cut_point + start
-      cut_point = cut_point + d
-    }
-    ab += stop
-    ab
+  def cut(colName: String) = {
+    val rd = df.groupBy("C1").count().rdd.map(x => x.getDouble(0)).histogram(3)
+//
+//    // 入参是一个数/或者是一个数组
+//    // 先用排好序的数组的边界值来得出两个桶之间的间距
+//    // 如果是一个数组 表示： [1, 10, 20, 50] the buckets are [1, 10) [10, 20) [20, 50]
+//    // 返回一个元组， 分箱边界和分箱内的统计数目
+//    val (bucket, ct )  = rd.histogram(bins)
+//    bucket.foreach(x => println(f"$x%2.2f"))
   }
-
 
   /**
-    *
-    * @param start
-    * @param stop
-    * @param num
-    * @param endpoint
-    * @return
+    * 等频分箱，等同pandas 的pcut
     */
-  def linspace(start: Double, stop: Double, num: Int = DEFAULT_BINS, endpoint: Boolean = true): mutable.Buffer[Double] = {
-    require(num > 0, "Number of samples, %s, must be non-negative.")
+  def qcut = {
+    val qd = new QuantileDiscretizer().setInputCol("m1").setOutputCol("q7day")
+      .setNumBuckets(10)      //设置分箱数
+      .setRelativeError(0) //设置precision-控制相对误差,设置为0时，将会计算精确的分位点（计算代价较高）。
+      .setHandleInvalid("keep") //对于空值的处理 handleInvalid = ‘keep’时，可以将空值单独分到一箱,  "skip" 不要空值
+      .fit(df)
 
-    val div = if (endpoint) num - 1 else num
+    qd.getSplits.foreach(println(_))//分箱区别
+    qd.transform(df).show() //左闭，右开区间，离散化数据
 
-    val delta = stop.toDouble - start.toDouble
-
-    var y = (0 to div).map(_*1.0).toBuffer // 0 until div
-
-    if (num > 1) {
-      val step = delta / div
-      if (step == 0) {
-        val t = for (i <- y) yield i / div
-        y = for (i <- t) yield i * delta
-      } else {
-        y = for (i <- y) yield i * step
-      }
-    } else {
-      val step = None
-      y = for (i <- y) yield i * delta
-    }
-
-    y = y.map(x => x + start)
-
-    if (endpoint && num > 1) {
-      y(div) = stop.toDouble
-    }
-    y
   }
 
-  private def min(df: DataFrame, col: String): Double = {
-    df.selectExpr(s"CAST($col as Double)").agg(s"$col" -> "min").first().get(0).asInstanceOf[Double]
+  /**
+    * 决策树分箱, 该决策树和python的sk-learn 出的结果不一致，需要再研究
+    * 训练决策树模型，单特征分箱
+    */
+  def dt = {
+    val dt = new DecisionTreeClassifier().setLabelCol("d14")
+      .setFeaturesCol("feature")
+      .setImpurity("gini") // gini系数 or entropy [ˈentrəpi](熵)
+      //    .setMaxBins(100) //离散化"连续特征"的最大划分数
+      .setMaxDepth(4) //树的最大深度
+      //    .setMinInfoGain(0.01) //一个节点分裂的最小信息增益，值为[0,1]
+      .setMinInstancesPerNode(1) //每个节点包含的最小样本数
+      .setSeed(7)
+
+    df.printSchema()
+
+    val sm = new VectorAssembler()
+      .setInputCols(Array("day7"))
+      .setOutputCol("feature")
+
+    val data = sm.transform(df)
+    data.show(5, truncate = 0)
+
+    //input fit must be vector
+    val model = dt.fit(data)
+
+    //  val mp = """\d|\d+\.\d+""".r
+    //  val res = mp.findAllMatchIn(model.toDebugString).toArray
+    //  res.foreach(println(_))
+
+    println(model.toDebugString)
+    println(model.featureImportances)
+    println(model.numClasses)
+    println(model.numFeatures)
+    println(model.numNodes)
+    println(model.rootNode.impurity)
   }
 
 
-  private def max(df: DataFrame, col: String): Double = {
-    df.selectExpr(s"CAST($col as Double)").agg(s"$col" -> "max").first().get(0).asInstanceOf[Double]
-  }
 
-}
-
-object ContinueEncoder {
-  def apply: ContinueEncoder = new ContinueEncoder()
 }

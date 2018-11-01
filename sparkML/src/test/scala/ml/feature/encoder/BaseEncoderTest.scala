@@ -24,8 +24,11 @@ object BaseEncoderTest extends SparkTools {
 
   val strIndex = new StringIndexer()
     .setInputCol("ad")
-    .setOutputCol("adNew")
+    .setOutputCol("ad_new")
     .fit(baseDf)
-  strIndex.transform(baseDf).show(10000, truncate=false)
+  val res = strIndex.transform(baseDf)
+
+  res.show(10000, truncate=false)
+  res.drop("ad").withColumnRenamed("ad_new","ad").show(1000, truncate = false)
 //  val strIndexM = new StringIndexerModel()
 }
