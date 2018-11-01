@@ -65,8 +65,6 @@
             <version>0.72</version>
         </dependency>
 
-
-
         <!--https://mvnrepository.com/artifact/com.google.code.gson/gson-->
         <dependency>
             <groupId>com.google.code.gson</groupId>

@@ -1,14 +1,14 @@
 /**
   * create by colin on 2018/7/23
   */
-
+package ml
 import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostClassificationModel}
 import org.apache.spark.SparkConf
 import ml.dmlc.xgboost4j.scala.Booster
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.regression.LabeledPoint
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import util.SparkTools
 
 import scala.collection.SortedMap
@@ -635,12 +635,58 @@ object XgboostTest extends SparkTools {
     "TRAIN_TRAINER" -> ""
   )
 
-  def getSrouce(str: String) = {
+  //step 1
+  def getFeaDS(str: String):DataFrame = {
+    baseDf
+  }
+
+  import org.apache.spark.sql.functions._
+  //step 2  return train/test
+  def getSampleSplit(df:DataFrame,
+                     label:String,
+                     report_dst:String,
+                     time_col: String="biz_report_expect_at",
+                     index_col:String="apply_risk_id",
+                     label_col:String="overdue_days",
+                     test_size: Double=0.2,
+                     method: String="oot", random_state: Int=7) = {
+
+    val counts = df.count()
+    val ootNumber = (counts * test_size).toInt
+    val trainNumber = (counts * (1- test_size)).toInt
+
+    val (train, test) = method match {
+      case "oot" =>
+        val test = df.sort(-$"$time_col".desc).limit(ootNumber)
+        val train =  df.sort($"$time_col").limit(trainNumber)
+        (train, test)
+      case "random" =>
+        val res = df.randomSplit(Array(1 - test_size, test_size))
+        val test = res(0)
+        val train = res(1)
+        (train, test)
+      case _ =>
+        println("mismatch spliter method....return None")
+        (None, None)
+    }
+  }
+
+  // step 3 FEA_TRANSFORM
+  def featureTransform() = {
 
   }
 
+  //step 4 TRAIN_FILTER
+  def featureFilter() = {
+
+  }
+
+  // setp 5 train data
+
+
+
   // from fea_ds get Dataframe
-  val sourceDf = getSrouce(flowMap("FEA_DS"))
+//  val sourceDf = getSrouce(flowMap("FEA_DS"))
 
   def getSplitP(str: String) = {
     0.2

@@ -6,7 +6,7 @@ import org.apache.spark.sql.{DataFrame, Row}
 import scala.collection.mutable.ListBuffer
 
 /**
-  * 字符串变量将字符转换成它对应的频数
+  * 字符串变量将字符转换成它对应的频数 是否用ml.StringIndexer
   * count encoding: Replace categorical variables with count in the train set.
   * replace unseen variables with 1.
   * Can use log-transform to be avoid to sensitive to outliers.
@@ -44,7 +44,7 @@ class CategoryEncoder(val unseen_value: Int, val log_transform: Boolean, val smo
   }
 
 
-  def transform() :DataFrame = {
+  def transform(df: DataFrame) :DataFrame = {
     dfTemp.drop(dfTemp("index"))
   }
 
@@ -57,25 +57,18 @@ class CategoryEncoder(val unseen_value: Int, val log_transform: Boolean, val smo
     */
   def addIndexDf(df:DataFrame, f:String):DataFrame = {
     val mRdd = df.na.fill(1).rdd
-
     val newRdd = mRdd.mapPartitions(par => par.map(x => x.toString.substring(1, x.toString.length -1))).zipWithIndex()
-
     //transfer rdd use math.log
     var rowRdd = newRdd.mapPartitions(par => par.map(a => Row(math.log(a._1.toInt), a._2.toInt)))
-
     if (!log_transform) rowRdd = newRdd.mapPartitions(par => par.map(a => Row(a._1.toInt, a._2.toInt)))
-
-
     var sf = StructField(f, DoubleType, nullable = true)
     if (!log_transform) sf = StructField(f, IntegerType, nullable = true)
-
     val schema = StructType(
       Array(
         sf,
         StructField("index", IntegerType, nullable = true)
       )
     )
-
     val resDf = df.sparkSession.createDataFrame(rowRdd, schema)
     resDf
   }

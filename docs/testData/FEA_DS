@@ -1,29 +1,20 @@
 {
 	"st":{
 		"params":{
-			"include":"row_number() OVER ( ORDER BY apply_risk_created_at desc) as apply_risk_id ,apply_risk_created_at,jxl_contact_call_len_then_equal_1_ratio,jxl_contact_c1w_then_0_ratio,farest_created_span_self_stb,jxl_c1m_gre_0_ratio,jxl_c3m_gre_0_ratio,jxl_contact_call_cnt_equal_1_ratio,jxl_ccm_gre_0_ratio,jxl_region_count_region,jxl_phone_diffdate,hit_type_lijihuankuan_d30,baidu_panshi_prea_score,jxl_coc_gre_0_ratio,latest_yuqi_day_self_stb,mean_first_last_created_span_self_stb,last_latest_created_span_self_stb,hit_type_bangdingshoukuanyinhangka_d30,max_yuqi_day_self_stb,baidu_panshi_duotou_identity_score,jxl_avg_morning,first_last_created_span_self_stb,enter_type_querenjiekuan_d30,fbi_score,overdue_days,equipment_app_names_v2 as equipment_app_name,i011,i061,i301,i601,kuaidi_cnt, yiyuqi_cnt",
-			"condition":"apply_risk_created_at>= '2018-07-20'and apply_risk_created_at <= '2018-08-06'"
+			"include":"apply_risk_id,apply_risk_created_at,jxl_contact_call_len_then_equal_1_ratio,jxl_contact_c1w_then_0_ratio,farest_created_span_self_stb,jxl_c1m_gre_0_ratio,jxl_c3m_gre_0_ratio,jxl_contact_call_cnt_equal_1_ratio,jxl_ccm_gre_0_ratio,jxl_region_count_region,jxl_phone_diffdate,hit_type_lijihuankuan_d30,baidu_panshi_prea_score,jxl_coc_gre_0_ratio,latest_yuqi_day_self_stb,mean_first_last_created_span_self_stb,last_latest_created_span_self_stb,hit_type_bangdingshoukuanyinhangka_d30,kuaidi_cnt,max_yuqi_day_self_stb,yiyuqi_cnt,baidu_panshi_duotou_identity_score,jxl_avg_morning,first_last_created_span_self_stb,enter_type_querenjiekuan_d30,fbi_score,overdue_days,equipment_app_names_v2 as equipment_app_name,i011,i061,i301,i601",
+			"condition":"product_period_count=1 and apply_risk_created_at>= '2018-07-20'and apply_risk_created_at <= '2018-08-05'",
+			"min_date":"from_unixtime(unix_timestamp(date_sub(current_date(),120),'yyyy-MM-dd'),'yyyyMMdd')",
+			"max_date":"from_unixtime(unix_timestamp(date_sub(current_date(),0),'yyyy-MM-dd'),'yyyyMMdd')"
 		}
 	},
 	"ds":{
 		"dsType":"samplesrc",
 		"fileType":"hive",
-		"id":1000,
+		"id":137,
 		"label":{
 			"desc":"label",
-			"name":"07d",
+			"name":"7d",
 			"type":"number"
-		},
-		"time":{
-			"desc":"time",
-			"name":"apply_risk_created_at",
-			"type":"date"
-		},
-		"storeInfo":{
-			"db":"dm_temp",
-			"storeEngine":"hive",
-			"storeGranularity":"total",
-			"target":"wl_lk_20180830_temp_final_1"
 		}
 	},
 	"out":{
