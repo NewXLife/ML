@@ -1,8 +1,7 @@
 package com.niuniuzcd.demo.util
 
-import org.apache.spark.sql.types.{DoubleType, IntegerType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row}
-
+import org.apache.spark.sql.types.{DoubleType, IntegerType, StructField, StructType}
 /**
   * create by colin on 2018/7/30
   */

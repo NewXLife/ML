@@ -1,6 +1,7 @@
 package com.niuniuzcd.demo.ml.transformer
 
 import org.apache.spark.ml.feature.{StringIndexer, StringIndexerModel}
+import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.{DataFrame, Row}
 
 import scala.collection.mutable.ListBuffer
@@ -12,25 +13,69 @@ import scala.collection.mutable.ListBuffer
   * Can use log-transform to be avoid to sensitive to outliers.
   */
 
-class CategoryEncoder(var df: DataFrame, val unseen_value: Int = 1, val log_transform: Boolean = true, val smoothing: Int = 1, val inplace: Boolean = true) {
+class CategoryEncoder(val unseen_value: Int = 1, val log_transform: Boolean = true, val smoothing: Int = 1, val inplace: Boolean = true) {
   var columns: Array[String] = _
   var dfTemp : DataFrame = _
   var dfTempList: ListBuffer[DataFrame] = _
   var strIndexerModel: StringIndexerModel = _
+  private var newCol = ""
+  private var inputCol = ""
+  private var outputCol = ""
+
+  def setInputCol(colName: String):this.type = {
+    inputCol = colName
+    newCol = "new_"+ inputCol
+    this
+  }
+  def setOutputCol(colName: String):this.type  = {
+    outputCol = colName
+    this
+  }
 
   /**
     * ml.StringIndexer
+    * input Seq('a','b','a','c')
+    * result code as follows:
+    * +---+--------+
+    * |n  |ad_index|
+    * +---+--------+
+    * |a  |0.0     |
+    * |b  |1.0     |
+    * |a  |0.0     |
+    * |c  |2.0     |
+    * +---+--------+
     */
-  def fit(colName: String):this.type = {
+  def fit(df: DataFrame):this.type = {
     strIndexerModel = new StringIndexer()
-      .setInputCol(colName)
-      .setOutputCol(colName + "_inx")
+      .setInputCol(inputCol)
+      .setOutputCol(outputCol)
       .fit(df)
     this
   }
 
   def transform(df: DataFrame) :DataFrame = {
     strIndexerModel.transform(df)
+  }
+
+  import org.apache.spark.sql.functions.udf
+  val mathLog: UserDefinedFunction = udf{ f: Double => math.log(f)}
+  /**
+    * the same with python p-> python alias
+    * step1: group by  sta-colName
+    * step2: all of smooth 1
+    * step3: use math.log smooth
+    * @param df
+    */
+  def pfit(df:DataFrame):this.type = {
+    dfTemp = df.groupBy(inputCol).count().toDF(newCol, "count")
+    this
+  }
+
+  def ptransform(df: DataFrame): DataFrame = {
+    val t2 = if(inplace) df.join(dfTemp, dfTemp(newCol).equalTo(df(inputCol)), "left").drop(inputCol, newCol) else df.join(dfTemp, dfTemp(newCol).equalTo(df(inputCol)), "left")
+    val t3 = if(smoothing > 0) t2.withColumn("count_1", t2("count")+ smoothing).drop("count").withColumnRenamed("count_1", "count") else t2
+    if(log_transform) t3.withColumn("log_count", mathLog(t3("count"))).drop("count").withColumnRenamed("log_count", outputCol)
+    else t3.withColumnRenamed("count", outputCol)
   }
 }
 
