@@ -13,15 +13,15 @@ object ContinueEncoderTest extends SparkTools with Serializable {
 //    println(c, tempLaoke.select(c).distinct().count())
 //  }
 
-  val test = tempLaoke.limit(10000).persist()
-  println(test.columns.length)
-
-  val tttt = test.select("apply_risk_id").distinct().count()
-
-  val ccc = new BaseEncoder()
-  ccc.fit(test)
-  val res = ccc.transform(test)
-  println(res.columns.length)
+//  val test = tempLaoke.limit(10000).persist()
+//  println(test.columns.length)
+//
+//  val tttt = test.select("apply_risk_id").distinct().count()
+//
+//  val ccc = new BaseEncoder()
+//  ccc.fit(test)
+//  val res = ccc.transform(test)
+//  println(res.columns.length)
 
 
   //  val r1 = baseDf.groupBy("ad").count()
