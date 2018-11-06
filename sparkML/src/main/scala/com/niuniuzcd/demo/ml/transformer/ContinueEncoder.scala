@@ -28,7 +28,7 @@ import scala.collection.mutable.ArrayBuffer
   *
   * 决策树分箱方法使用的决策树参数
   */
-class ContinueEncoder(diff_thr: Long = 20, bins: Int = 10, var binningMethod: String = "dt", inplace: Boolean = true) extends Serializable {
+class ContinueEncoder(diff_thr: Int = 20, bins: Int = 10, var binningMethod: String = "dt", inplace: Boolean = true) extends Serializable {
   var bucket: Array[Double] = _
   var innerDf: DataFrame = _
   var binCols: ArrayBuffer[String] = ArrayBuffer[String]()

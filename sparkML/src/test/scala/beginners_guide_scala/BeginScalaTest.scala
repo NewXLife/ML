@@ -604,7 +604,7 @@ object JodaImplicits{
   class KongFu2(name: String){
     case class Character(actorName: String)
     def createKongFuActor(a1: Character, a2: Character):(Character, Character) = (a1, a2)
-  }train_filter
+  }
 
   /**
     * 依赖方法类型

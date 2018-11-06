@@ -8,8 +8,8 @@
         "label_col":"overdue_days",
         "py_split":"true"
     },
-    "ds":"#state(${prevId},ds)",
+    "ds":"FEA_DS",
     "out":{
-        "dst":"/model/${flowId}/${nodeId}"
+        "dst":"FEA_TRANSFORM"
     }
 }

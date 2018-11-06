@@ -1,6 +1,8 @@
 package base
 
 import com.alibaba.fastjson.JSON
+import com.google.gson.{JsonObject, JsonParser}
+import com.niuniuzcd.demo.ml.transformer.{BaseEncoder, CategoryEncoder, ContinueEncoder}
 import org.apache.spark.sql.DataFrame
 import util.SparkTools
 
@@ -47,29 +49,47 @@ class FeaSampleSplit(str: String) extends Protocol[String]{
     dst
   }
 }
+case class Encoder(method: String, params:String)
+case class EncoderWrap(cols:Array[Any], encoders: Array[Encoder])
+case class ST(cate: Array[EncoderWrap], cont: Array[EncoderWrap], custom: Array[EncoderWrap], method: String, params: String, verbose: Boolean)
 
 class FeatureTransform(str: String) extends Protocol[String]{
   val (st, ds, out) = parseTrainJson(str)
-
-  case class Encoder(method: String, params:String)
-  case class Cate(cols:Array[String], encoders: Array[Encoder])
-  case class Cont(cols:Array[String], encoders: Array[Encoder])
-  case class Custom(cols:Array[String], encoders: Array[Encoder])
-  case class ST(cate: Cate, cont: Cont, custom: Custom, method: String, params: String)
-
   val  featureTransform = (input: DataFrame) => input
+  var cate: Array[EncoderWrap]= _
+  var cont: Array[EncoderWrap]= _
+  var custom: Array[EncoderWrap]= _
+  var method: String = _
+  var params: String = _
+
+  def transform(df: DataFrame): DataFrame = {
+    if (cate.length >0 ){
+      for (encoderWrap <- cate){
+        val cols = encoderWrap.cols
+        for(encoder <- encoderWrap.encoders){
+          val p = JSON.parseObject(encoder.params)
+          encoder.method match {
+            case "BaseEncoder" => new BaseEncoder(cate_thr = p.getDouble("cate_thr"), missing_thr = p.getDouble("missing_thr"), same_thr =p.getDouble("same_thr")).fit(df).transform(df)
+            case "CountEncoder" => new CategoryEncoder(log_transform = p.getBoolean("log_transform"), unseen_value= p.getInteger("unseen_value"), smoothing =p.getInteger("smoothing")).fit(df).transform(df)
+            case "ContinueEncoder" =>  new ContinueEncoder(diff_thr = p.getInteger("diff_thr"), bins = p.getInteger("bins"), binningMethod = p.getString("binning_method")).fit(df).transform(df)
+          }
+        }
+      }
+    }
+    null
+  }
 
   def getDs(s: String): String = {
     ""
   }
 
   def getSt(s: String): String = {
-    val st = JSON.parseObject(s, classOf[ST])
-    val cate = st.cate
-    val cont = st.cont
-    val custom = st.custom
-    val method = st.method
-    val params = st.params
+    val stObj = JSON.parseObject(st, classOf[ST])
+    cate = stObj.cate
+    cont = stObj.cont
+    custom = stObj.custom
+    method = stObj.method
+    params = stObj.params
     ""
   }
 
@@ -240,28 +260,104 @@ object JSONParse extends SparkTools {
       |}
     """.stripMargin
 
+  val fea_transform =
+    """
+      |{
+      |	"st": {
+      |		"cate": [{
+      |			"encoders": [{
+      |				"method": "BaseEncoder",
+      |				"params": {
+      |					"cate_thr": 0.5,
+      |					"missing_thr": 0.8,
+      |					"same_thr": 0.9
+      |				}
+      |			},
+      |			{
+      |				"method": "CountEncoder",
+      |				"params": {
+      |					"log_transform": true,
+      |					"unseen_value": 1,
+      |					"smoothing": 1
+      |				}
+      |			}],
+      |			"cols": []
+      |		}],
+      |		"method": "auto",
+      |		"params": {
+      |			"thr": 5
+      |		},
+      |		"cont": [{
+      |			"encoders": [{
+      |				"method": "BaseEncoder",
+      |				"params": {
+      |					"cate_thr": 0.5,
+      |					"missing_thr": 0.8,
+      |					"same_thr": 0.9
+      |				}
+      |			}],
+      |			"cols": []
+      |		}],
+      |		"custom": [{
+      |			"cols": ["equipment_app_name"],
+      |			"encoders": [{
+      |				"method": "AppCateEncoder",
+      |				"params": {
+      |					"cate_dict": "#cate_dict_path(2)",
+      |					"delimiter": "|",
+      |					"prefix": "app_",
+      |					"unknown": "unknown"
+      |				}
+      |			}]
+      |		}],
+      |		"verbose": true
+      |	},
+      |	"ds": "#state(${prevId},ds)",
+      |	"out": {
+      |		"dst": "/model/${flowId}/${nodeId}"
+      |	}
+      |}
+    """.stripMargin
+
   var trainMap = TreeMap.empty[String, Protocol[Any]]
 
+val json = new JsonObject
+  json.addProperty("FEA_DS", fea_ds)
+  json.addProperty("FEA_SAMPLE_SPLIT", sample_split)
+
+
+  println(gson(json.toString))
+//  val js = JSON.parseObject(json.toString, classOf[Map[String, String]])
+//
+//  println(js.keys)
+
+  def gson (str: String) = {
+    val json = new JsonParser()
+    val obj = json.parse(str).asInstanceOf[JsonObject]
+    obj.keySet()
+  }
+
   //fea_ds
-  val ds = new FeaDs(fea_ds).getDataSet()
+//  val ds = new FeaDs(fea_ds).getDataSet()
 
   //get train,test dataframe
-  val (train, test) = new FeaSampleSplit(sample_split).datasetSplit(ds)
+//  val (train, test) = new FeaSampleSplit(sample_split).datasetSplit(ds)
 
-  val t_train = new FeatureTransform("").featureTransform(train)
-  val t_test = new FeatureTransform("").featureTransform(test)
+//  val t_train = new FeatureTransform(fea_transform).featureTransform(train)
+//  val t_train = new FeatureTransform(fea_transform)
+//  t_train.getSt("")
 
-  val train_filter = new TrainFilter("").trainFilter(t_train)
-
-  val model = new TrainTrainer("").trainFilter(train_filter)
+//  val t_test = new FeatureTransform("").featureTransform(test)
+//  val train_filter = new TrainFilter("").trainFilter(t_train)
+//  val model = new TrainTrainer("").trainFilter(train_filter)
 
   //input t_test production result
 
   //defined a pipeline function
-  val pipeline = Function.chain(Seq(new FeatureTransform("").featureTransform, new TrainFilter("").trainFilter))
+//  val pipeline = Function.chain(Seq(new FeatureTransform("").featureTransform, new TrainFilter("").trainFilter))
 
   //execute pipeline
-  pipeline(train)
+//  pipeline(train)
 
   //we suppose the sequence is protocolList
 

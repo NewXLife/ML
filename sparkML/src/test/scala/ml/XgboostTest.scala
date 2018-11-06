@@ -2,16 +2,11 @@
   * create by colin on 2018/7/23
   */
 package ml
-import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostClassificationModel}
-import org.apache.spark.SparkConf
-import ml.dmlc.xgboost4j.scala.Booster
+import ml.dmlc.xgboost4j.scala.spark.XGBoost
 import org.apache.spark.ml.feature.VectorAssembler
-import org.apache.spark.mllib.linalg.Vectors
-import org.apache.spark.mllib.regression.LabeledPoint
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.DataFrame
 import util.SparkTools
 
-import scala.collection.SortedMap
 import scala.collection.immutable.TreeMap
 
 object XgboostTest extends SparkTools {
