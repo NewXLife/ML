@@ -36,6 +36,10 @@ class ContinueEncoder(diff_thr: Int = 20, bins: Int = 10, var binningMethod: Str
   var binsMap: scala.collection.mutable.Map[String, Array[Double]] = scala.collection.mutable.Map[String, Array[Double]]()
   private final val bc = new Bucketizer()
 
+  val func = (df: DataFrame) =>{
+    fit(df).transform(df)
+  }
+
   def fit(df: DataFrame, y: String = ""): this.type = {
     if (y.isEmpty && binningMethod == "dt") binningMethod = "qcut" else innerDf = df.withColumnRenamed("label", y)
 

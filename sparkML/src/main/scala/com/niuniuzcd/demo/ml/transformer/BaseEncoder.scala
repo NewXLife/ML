@@ -28,23 +28,43 @@ import org.apache.spark.sql.DataFrame
 class BaseEncoder(val missing_thr: Double = 0.8, val same_thr: Double = 0.8, val cate_thr: Double = 0.9) {
   var exclude_cols: scala.collection.mutable.ArrayBuffer[String] = scala.collection.mutable.ArrayBuffer[String]()
 
+   var cateCols = Array[String]()
+
+  var stringFeatureArray = Array[String]()
+
   def fit(df: DataFrame): this.type = {
-    exclude_cols ++= getCateCols(df)
+    println("start get category cols....")
+    cateCols = getCateCols(df)
+    println(s"get cateCols: ${cateCols.mkString(",")}")
+    exclude_cols ++= cateCols
+
+    println("start get same values cols....")
     exclude_cols ++= getSameValueRatio(df)
+
+    println("start get missing values cols....")
     exclude_cols ++= getMissingValueRatio(df)
+
+    //label contains
+    exclude_cols -= "label"
+    println("get exclude cols: ", exclude_cols)
+
     this
   }
 
+  val func: DataFrame => DataFrame = (df: DataFrame) =>{
+    println("executing base encoder ............")
+    fit(df).transform(df)
+  }
   /**
     * 被剔除的取值分散字符串列 default = 0.9
     * @return
     */
   def getCateCols(df: DataFrame): Array[String] ={
     val total = df.count().asInstanceOf[Double]
-    val cateFeatures = df.dtypes.filter { case (_, t) => t == "StringType" }.map { case (f, _) => f }
+     stringFeatureArray = df.dtypes.filter { case (_, t) => t == "StringType" }.map { case (f, _) => f }
 
-    if (cateFeatures.length > 0)
-        cateFeatures.map(fName => (fName,df.select(fName).distinct().count()))
+    if (stringFeatureArray.length > 0)
+      stringFeatureArray.map(fName => (fName,df.select(fName).distinct().count()))
           .filter{case(_, p) => (p.asInstanceOf[Long] / total) > cate_thr}
           .map{case(f,_) => f}
     else

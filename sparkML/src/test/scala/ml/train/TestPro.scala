@@ -1,4 +1,4 @@
-package com.niuniuzcd.demo.trainAtom
+package ml.train
 
 import com.google.gson.JsonObject
 
@@ -32,12 +32,12 @@ object TestPro {
     """
       |{
       |    "st":{
-      |        "method":"oot",
+      |        "method":"random",
       |        "test_size":0.2,
       |        "random_state":7,
       |        "time_col":"apply_risk_created_at",
       |        "index_col":"apply_risk_id",
-      |        "label_col":"overdue_days",
+      |        "label_col":"d14",
       |        "py_split":"true"
       |    },
       |    "ds":"#state(${prevId},ds)",

@@ -1,10 +1,10 @@
 package com.niuniuzcd.demo.ml.transformer
 
 import org.apache.spark.ml.feature.{StringIndexer, StringIndexerModel}
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.expressions.UserDefinedFunction
-import org.apache.spark.sql.{DataFrame, Row}
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 /**
   * 字符串变量将字符转换成它对应的频数 是否用ml.StringIndexer
@@ -16,10 +16,12 @@ import scala.collection.mutable.ListBuffer
 class CategoryEncoder(val unseen_value: Int = 1, val log_transform: Boolean = true, val smoothing: Int = 1, val inplace: Boolean = true) {
   var columns: Array[String] = _
   var dfTemp : DataFrame = _
+  var resTemp : DataFrame = _
   var dfTempList: ListBuffer[DataFrame] = _
   var strIndexerModel: StringIndexerModel = _
   private var newCol = ""
   private var inputCol = ""
+  var colsArray: ArrayBuffer[String] = ArrayBuffer()
   private var outputCol = ""
 
   def setInputCol(colName: String):this.type = {
@@ -51,6 +53,29 @@ class CategoryEncoder(val unseen_value: Int = 1, val log_transform: Boolean = tr
       .setOutputCol(outputCol)
       .fit(df)
     this
+  }
+
+  val pfunc: DataFrame => DataFrame = (df: DataFrame) => {
+    println("before category encoder dataframe show:")
+    df.show(5)
+    if (colsArray.nonEmpty ){
+      resTemp = df
+      for(col <- colsArray){
+        inputCol = col
+        outputCol = col
+        resTemp =pfit(resTemp).ptransform(resTemp)
+      }
+      println("after category encoder dataframe show:")
+      resTemp.show(5)
+      resTemp
+    }else{
+      df
+    }
+
+  }
+
+  val func: DataFrame => DataFrame = (df: DataFrame) => {
+    fit(df).transform(df)
   }
 
   def transform(df: DataFrame) :DataFrame = {

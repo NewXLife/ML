@@ -14,7 +14,8 @@ object JsonUtil extends App{
     obj
   }
 
-  def getKeySet(str: String): util.Set[String] = {
+  def getKeySet(str: String): scala.collection.Set[String] = {
+    import scala.collection.JavaConversions._
     gson(str).keySet()
   }
 

@@ -1,4 +1,4 @@
-package com.niuniuzcd.demo.ml.transformer
+package com.kuainiu.beidou.ml.transformer
 
 import org.apache.spark.sql.DataFrame
 
@@ -21,8 +21,8 @@ import org.apache.spark.sql.DataFrame
   * nan_thr : float, default: 0.01
   * 对缺失值采用平滑方法计算woe值，nan_thr为平滑参数
   */
-class WOEIVEncoder(val diff_thr: Int, val woe_min: Int, val woe_max: Int, val nan_thr: Double, val inplace: Boolean) {
-  var dmap: Map[Any, Any] = _
+class WOEIVEncoder(diff_thr: Int, woe_min: Int, woe_max: Int, nan_thr: Double, inplace: Boolean) {
+  var dmap: scala.collection.mutable.Map[Any, Any] = _
 
   /**
     * OVERDUE_THREAD >0  overdue
