@@ -1,6 +1,5 @@
 package ml.feature.encoder
 
-import com.niuniuzcd.demo.ml.transformer.{CategoryEncoder, ContinueEncoder, BaseEncoder}
 import org.apache.spark.SparkException
 import org.apache.spark.ml.feature.Bucketizer
 import org.apache.spark.sql.expressions.UserDefinedFunction

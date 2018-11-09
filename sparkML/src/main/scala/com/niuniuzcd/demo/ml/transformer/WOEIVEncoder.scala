@@ -1,4 +1,4 @@
-package com.kuainiu.beidou.ml.transformer
+package com.niuniuzcd.demo.ml.transformer
 
 import org.apache.spark.sql.DataFrame
 

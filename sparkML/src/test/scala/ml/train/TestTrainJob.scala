@@ -1,7 +1,7 @@
 package ml.train
 
 import com.alibaba.fastjson.JSON
-import com.niuniuzcd.demo.trainAtom.TrainUnits._
+import com.niuniuzcd.demo.ml.trainAtom.TrainUnits._
 import com.niuniuzcd.demo.util.JsonUtil
 import org.apache.spark.sql.DataFrame
 import util.SparkTools

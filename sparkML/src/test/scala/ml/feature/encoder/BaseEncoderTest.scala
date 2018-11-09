@@ -1,6 +1,5 @@
 package ml.feature.encoder
 
-import com.niuniuzcd.demo.ml.transformer.{BaseEncoder, CategoryEncoder}
 import org.apache.spark.ml.feature.{StringIndexer, StringIndexerModel, VectorAssembler}
 import util.SparkTools
 

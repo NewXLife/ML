@@ -1,4 +1,4 @@
-package com.niuniuzcd.demo.trainAtom
+package com.niuniuzcd.demo.ml.trainAtom
 
 import com.alibaba.fastjson.JSON
 import org.apache.spark.sql.DataFrame
