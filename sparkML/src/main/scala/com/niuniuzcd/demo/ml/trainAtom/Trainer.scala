@@ -6,12 +6,30 @@ import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostClassif
 import org.apache.spark.sql.DataFrame
 
 private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
-  val (st, ds, out) = parseTrainJson(str)
+  private val (st, ds, out) = parseTrainJson(str)
   var XGBModel: XGBoostClassificationModel = _
+
+  private val stJSONStr = JSON.parseObject(st)
+
+  private var method: String = _
+  private var test_size: Double = _
+  private var oversample: String = _
+  private var n_folds: String = _
+  private var random_state: Int = _
+  private var verbose: String = _
+  private var params: String = _
 
   def getDs: String = {
     val json = JSON.parseObject(ds)
     ""
+  }
+
+  def LinearRegression(df: DataFrame) = {
+    df
+  }
+
+  def LogisticRegression(df: DataFrame) = {
+    df
   }
 
   /** Booster-params
@@ -102,18 +120,77 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
     * number of trees used in the prediction; defaults to 0 (use all trees)
     */
 
-  val XGBtrainer = (df: DataFrame) => {
+    val trainer = (df: DataFrame) => {
+      getSt
+      ModelSelection.Model.withName(method) match {
+        case ModelSelection.Model.XGBClassifier =>  XGB(df)
+        case ModelSelection.Model.KMeans => KMeans(df)
+        case ModelSelection.Model.DecisionTreeClassifier => DecisionTreeClassifier(df)
+        case ModelSelection.Model.LinearRegression => LinearRegression(df)
+        case ModelSelection.Model.LogisticRegression => LogisticRegression(df)
+        case _ => df
+      }
+    }
+
+  def DecisionTreeClassifier(df: DataFrame): DataFrame = {
+    df
+  }
+
+  def KMeans(df: DataFrame): DataFrame = {
+    df
+  }
+
+  def XGB (df: DataFrame): DataFrame ={
+    case class XGBClassifierP(colsample_bytree: Double,
+                              reg_lambda: Long,
+                              silent: Boolean,
+                              base_score: Double,
+                              scale_pos_weight: Int,
+                              eval_metric: String,
+                              max_depth: Int,
+                              n_jobs: Int,
+                              early_stopping_rounds: Int,
+                              n_estimators: Long,
+                              random_state: Int,
+                              reg_alpha: Int,
+                              booster: String,
+                              objective: String,
+                              verbose: Boolean,
+                              colsample_bylevel: Double,
+                              subsample: Double,
+                              learning_rate: Double,
+                              gamma: Double,
+                              max_delta_step: Int,
+                              min_child_weight: Int
+                             )
+    val xgbcObj = JSON.parseObject(params, classOf[XGBClassifierP])
     val numRound = 800
     require(numRound > 10, "numRound must bigger than ten")
     val paramMap = Map(
-      "eta" -> 0.1f,
-      "maxDepth" -> 6, //数的最大深度。缺省值为6 ,取值范围为：[1,∞]
-      "objective" -> "binary:logistic", //定义学习任务及相应的学习目标  "reg:linear"
-      "eval_metric" -> "rmse", //校验数据所需要的评价指标
-      "num_class" -> 2, //分类数
-      "booster" -> "gbtree", //spark 目前只支持 gbtree（默认也是这个参数），设置其它参数会抛异常
-      "updater" -> "grow_histmaker,prune" //spark 目前支持的updater（默认也是这个参数），设置其它参数会抛异常
-      //"nthread"->  1  //XGBoost运行时的线程数。缺省值是当前系统可以获得的最大线程数
+      "colsampleBytree" -> xgbcObj.colsample_bytree,
+      "lambda" -> xgbcObj.reg_lambda,
+      "silent" -> 0,
+      "baseScore" -> xgbcObj.base_score,
+      "scalePosWeight" -> xgbcObj.scale_pos_weight,
+      "evalMetric" -> xgbcObj.eval_metric, //校验数据所需要的评价指标
+      "maxDepth" -> xgbcObj.max_depth, //数的最大深度。缺省值为6 ,取值范围为：[1,∞]
+//      "n_jobs" -> 1,
+      "numEarlyStoppingRounds" -> xgbcObj.early_stopping_rounds,
+//      "n_estimators" -> 1000,
+//      "random_state" -> 0,
+      "numWorkers" -> 4,
+      "alpha" -> xgbcObj.reg_alpha,
+      "booster" -> xgbcObj.booster, //spark 目前只支持 gbtree（默认也是这个参数），设置其它参数会抛异常
+      "objective" -> xgbcObj.objective, //定义学习任务及相应的学习目标  "reg:linear"
+//      "verbose" -> false,
+      "colsampleBylevel"-> xgbcObj.colsample_bylevel,
+      "subsample" -> xgbcObj.subsample,
+      "eta" -> xgbcObj.learning_rate, // learning_rate
+      "gamma" -> xgbcObj.gamma,
+      "maxDeltaStep" -> xgbcObj.max_delta_step,
+      "minChildWeight" -> xgbcObj.min_child_weight,
+      "nthread"->  4  //XGBoost运行时的线程数。缺省值是当前系统可以获得的最大线程数
+
     )
     //version 0.72
     //XGBModel = XGBoost.trainWithDataFrame(df, paramMap, numRound, nWorkers = 2)
@@ -126,7 +203,7 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
   /**
     * general-params
     *
-    * "numRound" -> numRound, //  The number of rounds for boosting
+    * "numRound" ->  Round, //  The number of rounds for boosting
     * "numWorkers" -> 2, //number of workers used to train xgboost model. default: 1
     * "nthread" -> 2, //number of threads used by per worker. default 1
     * "useExternalMemory" -> false, //whether to use external memory as cache. default: false
@@ -140,7 +217,13 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
     * "checkpointPath" -> "", //The hdfs folder to load and save checkpoint boosters. default: `empty_string`
     * "checkpointInterval" -> "", //Param for set checkpoint interval (&gt;= 1) or disable checkpoint (-1).  E.g. 10 means that the trained model will get checkpointed every 10 iterations
     *                             //Note: `checkpoint_path` must also be set if the checkpoint interval is greater than 0.
-    *
+    * "trankerConf" -> "rabit tracker configurations"
+    * "seed" -> "random seed"
+    * "leafPredictionCol" -> "Param for leaf prediction column name"
+    * "contribPredictionCol" -> "Param for contribution prediction column name."
+    * "baseMarginCol" -> "Param for initial prediction (aka base margin) column name."
+    * "groupCol" -> "Param for group column name."
+    * "numClass" -> "number of classes"
     * @return
     */
 
@@ -176,46 +259,13 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
     *
     */
   def getSt: String = {
-    case class XGBClassifierP(colsample_bytree: Double,
-                              reg_lambda: Long,
-                              silent: Boolean,
-                              base_score: Double,
-                              scale_pos_weight: Int,
-                              eval_metric: String,
-                              max_depth: Int,
-                              n_jobs: Int,
-                              early_stopping_rounds: Int,
-                              n_estimators: Long,
-                              random_state: Int,
-                              reg_alpha: Int,
-                              booster: String,
-                              objective: String,
-                              verbose: Boolean,
-                              colsample_bylevel: Double,
-                              subsample: Double,
-                              learning_rate: Double,
-                              gamma: Double,
-                              max_delta_step: Int,
-                              min_child_weight: Int
-                             )
-    val json = JSON.parseObject(st)
-    val method = json.getString("method")
-    val test_size = json.getString("test_size")
-    val oversample = json.getString("oversample")
-    val n_folds = json.getString("n_folds")
-    val random_state = json.getString("random_state")
-    val verbose = json.getString("verbose")
-
-    val params = json.getString("params")
-
-    ModelSelection.Model.withName(method) match {
-      case ModelSelection.Model.XGBClassifier =>  val xgbcObj = JSON.parseObject(params, classOf[XGBClassifierP])
-      case ModelSelection.Model.KMeans => println("")
-      case ModelSelection.Model.DecisionTreeClassifier => println("")
-      case ModelSelection.Model.LinearRegression => println("")
-      case ModelSelection.Model.LogisticRegression => println("")
-      case _ => println("")
-    }
+     method = stJSONStr.getString("method")
+     test_size = stJSONStr.getDouble("test_size")
+     oversample = stJSONStr.getString("oversample")
+     n_folds = stJSONStr.getString("n_folds")
+     random_state = stJSONStr.getIntValue("random_state")
+     verbose = stJSONStr.getString("verbose")
+     params = stJSONStr.getString("params")
     ""
   }
 

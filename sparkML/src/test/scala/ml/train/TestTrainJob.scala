@@ -60,7 +60,7 @@ object TestTrainJob extends SparkTools {
         val to = trainerObj(jsonP.getString("TRAIN_TRAINER"))
         store.set(CC.trainer)(to)
         executorFlow ++= featureFlow
-        executorFlow += to.XGBtrainer
+        executorFlow += to.trainer
       case _ => println("mismatch")
     }
   }
