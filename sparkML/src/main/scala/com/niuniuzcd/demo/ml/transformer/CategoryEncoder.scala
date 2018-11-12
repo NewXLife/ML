@@ -1,8 +1,8 @@
 package com.niuniuzcd.demo.ml.transformer
 
 import org.apache.spark.ml.feature.{StringIndexer, StringIndexerModel}
-import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.expressions.UserDefinedFunction
+import org.apache.spark.sql.{DataFrame, Row}
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
@@ -19,10 +19,10 @@ class CategoryEncoder(val unseen_value: Int = 1, val log_transform: Boolean = tr
   var resTemp : DataFrame = _
   var dfTempList: ListBuffer[DataFrame] = _
   var strIndexerModel: StringIndexerModel = _
-  private var newCol = ""
-  private var inputCol = ""
+  private var newCol: String = _
+  private var inputCol: String = _
   var colsArray: ArrayBuffer[String] = ArrayBuffer()
-  private var outputCol = ""
+  private var outputCol: String = _
 
   def setInputCol(colName: String):this.type = {
     inputCol = colName

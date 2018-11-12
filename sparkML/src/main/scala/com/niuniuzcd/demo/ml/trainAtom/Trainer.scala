@@ -1,13 +1,12 @@
 package com.niuniuzcd.demo.ml.trainAtom
 
 import com.alibaba.fastjson.JSON
-import com.niuniuzcd.demo.ml.evaluator.ModelSelection
 import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostClassifier}
 import org.apache.spark.sql.DataFrame
 
 private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
   private val (st, ds, out) = parseTrainJson(str)
-  var XGBModel: XGBoostClassificationModel = _
+  var Model: XGBoostClassificationModel = _
 
   private val stJSONStr = JSON.parseObject(st)
 
@@ -120,19 +119,16 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
     * number of trees used in the prediction; defaults to 0 (use all trees)
     */
 
-    val trainer = (df: DataFrame) => {
-      getSt
-      ModelSelection.Model.withName(method) match {
-        case ModelSelection.Model.XGBClassifier =>  XGB(df)
-        case ModelSelection.Model.KMeans => KMeans(df)
-        case ModelSelection.Model.DecisionTreeClassifier => DecisionTreeClassifier(df)
-        case ModelSelection.Model.LinearRegression => LinearRegression(df)
-        case ModelSelection.Model.LogisticRegression => LogisticRegression(df)
-        case _ => df
-      }
+  val trainer = (df: DataFrame) => {
+    import com.kuainiu.beidou.ml.evaluation.ModelS._
+    getSt
+    method match {
+      case XGBClassifier => XGB(df)
+      case _ => df
     }
+  }
 
-  def DecisionTreeClassifier(df: DataFrame): DataFrame = {
+  def DecisionTreeClassifier(df: DataFrame) = {
     df
   }
 
@@ -140,7 +136,7 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
     df
   }
 
-  def XGB (df: DataFrame): DataFrame ={
+  def XGB(df: DataFrame) = {
     case class XGBClassifierP(colsample_bytree: Double,
                               reg_lambda: Long,
                               silent: Boolean,
@@ -174,29 +170,29 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
       "scalePosWeight" -> xgbcObj.scale_pos_weight,
       "evalMetric" -> xgbcObj.eval_metric, //校验数据所需要的评价指标
       "maxDepth" -> xgbcObj.max_depth, //数的最大深度。缺省值为6 ,取值范围为：[1,∞]
-//      "n_jobs" -> 1,
+      //      "n_jobs" -> 1,
       "numEarlyStoppingRounds" -> xgbcObj.early_stopping_rounds,
-//      "n_estimators" -> 1000,
-//      "random_state" -> 0,
+      //      "n_estimators" -> 1000,
+      //      "random_state" -> 0,
       "numWorkers" -> 4,
       "alpha" -> xgbcObj.reg_alpha,
       "booster" -> xgbcObj.booster, //spark 目前只支持 gbtree（默认也是这个参数），设置其它参数会抛异常
       "objective" -> xgbcObj.objective, //定义学习任务及相应的学习目标  "reg:linear"
-//      "verbose" -> false,
-      "colsampleBylevel"-> xgbcObj.colsample_bylevel,
+      //      "verbose" -> false,
+      "colsampleBylevel" -> xgbcObj.colsample_bylevel,
       "subsample" -> xgbcObj.subsample,
       "eta" -> xgbcObj.learning_rate, // learning_rate
       "gamma" -> xgbcObj.gamma,
       "maxDeltaStep" -> xgbcObj.max_delta_step,
       "minChildWeight" -> xgbcObj.min_child_weight,
-      "nthread"->  4  //XGBoost运行时的线程数。缺省值是当前系统可以获得的最大线程数
+      "nthread" -> 4 //XGBoost运行时的线程数。缺省值是当前系统可以获得的最大线程数
 
     )
     //version 0.72
     //XGBModel = XGBoost.trainWithDataFrame(df, paramMap, numRound, nWorkers = 2)
 
     //version 0.80
-    XGBModel = new XGBoostClassifier(paramMap).setFeaturesCol("features").setLabelCol("label").fit(df)
+    Model = new XGBoostClassifier(paramMap).setFeaturesCol("features").setLabelCol("label").fit(df)
     df
   }
 
@@ -216,7 +212,7 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
     * "timeoutRequestWorkers" -> 30 * 60 * 1000L, //the maximum time to wait for the job requesting new workers. default: 30 minutes
     * "checkpointPath" -> "", //The hdfs folder to load and save checkpoint boosters. default: `empty_string`
     * "checkpointInterval" -> "", //Param for set checkpoint interval (&gt;= 1) or disable checkpoint (-1).  E.g. 10 means that the trained model will get checkpointed every 10 iterations
-    *                             //Note: `checkpoint_path` must also be set if the checkpoint interval is greater than 0.
+    * //Note: `checkpoint_path` must also be set if the checkpoint interval is greater than 0.
     * "trankerConf" -> "rabit tracker configurations"
     * "seed" -> "random seed"
     * "leafPredictionCol" -> "Param for leaf prediction column name"
@@ -224,6 +220,7 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
     * "baseMarginCol" -> "Param for initial prediction (aka base margin) column name."
     * "groupCol" -> "Param for group column name."
     * "numClass" -> "number of classes"
+    *
     * @return
     */
 
@@ -237,11 +234,11 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
     *
     * objectiveType
     * The learning objective type of the specified custom objective and eval.
-    *  Corresponding type will be assigned if custom objective is defined
-    *  options: regression, classification. default: null
+    * Corresponding type will be assigned if custom objective is defined
+    * options: regression, classification. default: null
     *
     * baseScore
-    *  the initial prediction score of all instances, global bias. default=0.5
+    * the initial prediction score of all instances, global bias. default=0.5
     *
     * evalMetric
     * evaluation metrics for validation data, a default metric will be assigned according to
@@ -259,13 +256,13 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
     *
     */
   def getSt: String = {
-     method = stJSONStr.getString("method")
-     test_size = stJSONStr.getDouble("test_size")
-     oversample = stJSONStr.getString("oversample")
-     n_folds = stJSONStr.getString("n_folds")
-     random_state = stJSONStr.getIntValue("random_state")
-     verbose = stJSONStr.getString("verbose")
-     params = stJSONStr.getString("params")
+    method = stJSONStr.getString("method")
+    test_size = stJSONStr.getDouble("test_size")
+    oversample = stJSONStr.getString("oversample")
+    n_folds = stJSONStr.getString("n_folds")
+    random_state = stJSONStr.getIntValue("random_state")
+    verbose = stJSONStr.getString("verbose")
+    params = stJSONStr.getString("params")
     ""
   }
 

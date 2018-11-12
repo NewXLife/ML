@@ -1,11 +1,11 @@
 package com.niuniuzcd.demo.ml.trainAtom
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import org.apache.spark.ml.feature.{ChiSqSelector, VectorAssembler}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.ml.feature.{ChiSqSelector, VectorAssembler}
 
 case class Estimator(name: String, params: String)
-case class Model(estimator: Estimator, threshold: String)
+
 private[trainAtom] class Filter(str: String) extends TrainProtocol[String] {
   val (st, ds, out) = parseTrainJson(str)
   val stJsonStr: JSONObject = JSON.parseObject(st)
@@ -15,6 +15,7 @@ private[trainAtom] class Filter(str: String) extends TrainProtocol[String] {
   var dataset: DataFrame = _
 
   def getSt: String = {
+    case class Model(estimator: Estimator, threshold: String)
     val method = stJsonStr.getString("method")
     val estimatorStr = stJsonStr.getString("params")
     val esObj = JSON.parseObject(estimatorStr, classOf[Model])
