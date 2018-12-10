@@ -7,6 +7,7 @@ import util.SparkTools
   * create by colin on 2018/9/7
   */
 object TestkolmogorovSmirnovTest extends SparkTools {
+ test.show(5)
 //  import spark.implicits._
 //
 //  case class UT(test:Double)
@@ -14,9 +15,9 @@ object TestkolmogorovSmirnovTest extends SparkTools {
 //  val test_test = spark.createDataFrame(Seq(UT(0.1),UT(0.03),UT(0.3),UT(0.25),UT(0.5))).toDF("test")
 // test_test.agg("test"->"mean", "test"->"variance").toDF("avg", "variance").map(x => (x.getDouble(0), x.getDouble(1))).show()
 
- val t =  Tools.toHash("7day") + 1.hashCode() * 17 + 1.hashCode() * 13
-println("month18".hashCode)
-println( Tools.toHash("month18").hashCode)
+// val t =  Tools.toHash("7day") + 1.hashCode() * 17 + 1.hashCode() * 13
+//println("month18".hashCode)
+//println( Tools.toHash("month18").hashCode)
   //+-------------------+--------------+
   //|          avg(test)|variance(test)|
   //+-------------------+--------------+
