@@ -4,7 +4,7 @@ import org.apache.spark.ml.feature.QuantileDiscretizer
 import org.apache.spark.sql.SparkSession
 
 /**
-  * 分位树为数离散化，和Bucketizer（分箱处理）一样也是：将连续数值特征转换为离散类别特征。
+  * 分位数离散化，和Bucketizer（分箱处理）一样也是：将连续数值特征转换为离散类别特征。
   * 实际上Class QuantileDiscretizer extends （继承自） Class（Bucketizer）。
   *
   * 使用算法 approximate algorithm

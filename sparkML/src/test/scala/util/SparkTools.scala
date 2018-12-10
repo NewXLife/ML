@@ -14,19 +14,15 @@ trait SparkTools extends App{
   import org.apache.spark.sql.functions._
   import spark.implicits._
 
-  ///user/hive/warehouse/base
-  val test = loadCSVData("csv", "hdfs://192.168.0.102:8020/user/hive/warehouse/base")
-  println("------------")
-  test.show(10)
-  val tempDf = loadCSVData("csv", "D:\\NewX\\ML\\docs\\testData\\base.csv")
-//  val tempLaoke = loadCSVData("csv", "C:\\NewX\\newX\\MachineLearning\\docs\\testData\\laoke_online.csv")
+  val tempDf = loadCSVData("csv", "C:\\NewX\\newX\\MachineLearning\\docs\\testData\\base.csv")
+  val tempLaoke = loadCSVData("csv", "C:\\NewX\\newX\\MachineLearning\\docs\\testData\\laoke_online.csv")
 
   val columns = tempDf.columns.toBuffer
 
   //exclude date field
   columns.remove(columns.indexOf("ad"))
 
-  val baseDf = tempDf.select($"ad" +: columns.toArray.map(f => col(f).cast(DoubleType)):_*)
+  val baseDf = tempDf.select($"ad" +: columns.toArray.map(f => col(f).cast(DoubleType)):_*).persist()
 
   val df = spark.createDataFrame(Seq(
     (0, Vectors.dense(1.0, 0.5, -1.0)),

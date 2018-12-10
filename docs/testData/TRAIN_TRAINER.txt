@@ -30,8 +30,8 @@
 		},
 		"verbose": true
 	},
-	"ds": "#state(${prevId},ds)",
+	"ds": "TRAIN_FILTER",
 	"out": {
-		"dst": "/model/${flowId}/${nodeId}"
+		"dst": "model"
 	}
 }

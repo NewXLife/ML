@@ -3,7 +3,7 @@
 		"method": "SelectFromModel",
 		"params": {
 			"estimator": {
-				"estimator": "XGBClassifier",
+				"name": "XGBClassifier",
 				"params": {
 					
 				}
@@ -11,8 +11,8 @@
 			"threshold": "0.1*mean"
 		}
 	},
-	"ds": "#state(${prevId},ds)",
+	"ds": "FEA_TRANSFORM",
 	"out": {
-		"dst": "/model/${flowId}/${nodeId}"
+		"dst": "TRAIN_TRAINER"
 	}
 }

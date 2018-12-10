@@ -35,14 +35,6 @@
             <version>${livy-version}</version>
         </dependency>
 
-
-        <!--<dependency>-->
-            <!--<groupId>com.github.hirofumi</groupId>-->
-            <!--<artifactId>xgboost4j_2.11</artifactId>-->
-            <!--<version>0.7.1-p1</version>-->
-        <!--</dependency>-->
-
-
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
@@ -62,7 +54,7 @@
         <dependency>
             <groupId>ml.dmlc</groupId>
             <artifactId>xgboost4j-spark</artifactId>
-            <version>0.72</version>
+            <version>0.80</version>
         </dependency>
 
         <!--https://mvnrepository.com/artifact/com.google.code.gson/gson-->

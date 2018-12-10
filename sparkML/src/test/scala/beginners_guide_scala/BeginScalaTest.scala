@@ -630,7 +630,7 @@ object JodaImplicits{
     */
   //抽象类型成员
   object DBserver{
-     abstract class DB(name: String){
+     abstract class DB(val name: String){
        type Value
      }
   }

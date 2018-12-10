@@ -25,41 +25,69 @@ import org.apache.spark.sql.DataFrame
   *
   * exclude_cols: list, 被剔除的列名
   */
-object BaseEncoder {
-  def apply(missing_thr: Double = 0.8, same_thr: Double = 0.8, cate_thr: Double = 0.9): BaseEncoder = new BaseEncoder(
-    missing_thr, same_thr, cate_thr
-  )
-}
+class BaseEncoder(val missing_thr: Double = 0.8, val same_thr: Double = 0.8, val cate_thr: Double = 0.9) {
+  var exclude_cols: scala.collection.mutable.ArrayBuffer[String] = scala.collection.mutable.ArrayBuffer[String]()
 
+   var cateCols = Array[String]()
 
-class BaseEncoder(val missing_thr: Double, val same_thr: Double, val cate_thr: Double) {
-  var colsAll: Array[String] = Array[String]()
+  var stringFeatureArray = Array[String]()
 
-  def fit(df: DataFrame): Unit = {
-    var sets = scala.collection.mutable.Set[String]()
-    sets ++= getCateCols(df)
-    sets ++= getSameValueRatio(df)
-    sets ++= getMissingValueRatio(df)
-    colsAll = sets.toArray[String]
+  def fit(df: DataFrame): this.type = {
+    println("start get category cols....")
+    cateCols = getCateCols(df)
+    println(s"get cateCols: ${cateCols.mkString(",")}")
+    exclude_cols ++= cateCols
+
+    println("start get same values cols....")
+    exclude_cols ++= getSameValueRatio(df)
+
+    println("start get missing values cols....")
+    exclude_cols ++= getMissingValueRatio(df)
+
+    //label contains
+    exclude_cols -= "label"
+    println("get exclude cols: ", exclude_cols)
+
+    this
   }
 
+  val func: DataFrame => DataFrame = (df: DataFrame) =>{
+    println("executing base encoder ............")
+    fit(df).transform(df)
+  }
+  /**
+    * 被剔除的取值分散字符串列 default = 0.9
+    * @return
+    */
   def getCateCols(df: DataFrame): Array[String] ={
     val total = df.count().asInstanceOf[Double]
-    val cateFeatures = df.dtypes.filter { case (_, t) => t != "IntegerType" }.map { case (f, _) => f }
+     stringFeatureArray = df.dtypes.filter { case (_, t) => t == "StringType" }.map { case (f, _) => f }
 
-    if (cateFeatures.length > 0)
-      cateFeatures.map(fName => (fName,df.dropDuplicates(s"$fName").count())).filter{case(_, p) => (p.asInstanceOf[Long] / total) > this.cate_thr}.map{case(f,_) => f}
+    if (stringFeatureArray.length > 0)
+      stringFeatureArray.map(fName => (fName,df.select(fName).distinct().count()))
+          .filter{case(_, p) => (p.asInstanceOf[Long] / total) > cate_thr}
+          .map{case(f,_) => f}
     else
       Array[String]()
   }
 
 
+  /**
+    * 被剔除的缺失值列 default=0.8
+    * @param df
+    * @return
+    */
   def getMissingValueRatio(df: DataFrame): Array[String] = {
     val tmp_count = df.schema.fields.map(f => (f.name, df.where(s"${f.name} is null").count()))
     for (i <- tmp_count if i._2 > this.missing_thr) yield i._1
   }
 
 
+  /**
+    * 被剔除的同值列 default = 0.8
+    * @param df
+    * @return
+    */
   def getSameValueRatio(df: DataFrame): Array[String] = {
     val total = df.count().asInstanceOf[Double]
     df.schema.fieldNames.map(fName =>
@@ -70,7 +98,7 @@ class BaseEncoder(val missing_thr: Double, val same_thr: Double, val cate_thr: D
   }
 
   def transform(df: DataFrame): DataFrame = {
-    df.drop(colsAll: _*)
+    df.drop(exclude_cols.toArray: _*)
   }
 
   /**
