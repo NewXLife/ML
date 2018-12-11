@@ -17,7 +17,7 @@ object FeatureBinning2 extends App {
 
   ///user/hive/warehouse/base
   println(s"start load data time:${DataUtils.getNowDate}")
-  val test = loadCSVData("csv", "D:\\NewX\\ML\\docs\\testData\\base.csv")
+  val test = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base.csv")
   println(s"end load time:${DataUtils.getNowDate}")
 
   def loadCSVData(csv: String, filePath: String, hasHeader: Boolean = true) = {

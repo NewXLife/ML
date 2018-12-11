@@ -7,7 +7,7 @@ import util.SparkTools
   * create by colin on 2018/9/7
   */
 object TestkolmogorovSmirnovTest extends SparkTools {
- test.show(5)
+// test.show(5)
 //  import spark.implicits._
 //
 //  case class UT(test:Double)

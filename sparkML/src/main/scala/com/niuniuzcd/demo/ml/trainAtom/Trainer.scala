@@ -120,7 +120,7 @@ private[trainAtom] class Trainer(str: String) extends TrainProtocol[String] {
     */
 
   val trainer = (df: DataFrame) => {
-    import com.kuainiu.beidou.ml.evaluation.ModelS._
+    import com.niuniuzcd.demo.ml.evaluation.ModelS._
     getSt
     method match {
       case XGBClassifier => XGB(df)

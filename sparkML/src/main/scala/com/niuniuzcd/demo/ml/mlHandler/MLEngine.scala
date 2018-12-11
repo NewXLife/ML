@@ -1,8 +1,8 @@
 package com.niuniuzcd.demo.ml.mlHandler
 
 import com.alibaba.fastjson.{JSON, JSONObject}
-import com.kuainiu.beidou.util.JsonUtil
-import com.kuainiu.beidou.ml.trainAtom.TrainUnit._
+import com.niuniuzcd.demo.util.JsonUtil
+import com.niuniuzcd.demo.ml.trainAtom.TrainUnit._
 import ml.dmlc.xgboost4j.scala.spark.XGBoostClassificationModel
 import org.apache.spark.sql.DataFrame
 
