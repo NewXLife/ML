@@ -1,6 +1,6 @@
 package sta
 
-import com.niuniuzcd.demo.util.DataUtils
+import com.niuniuzcd.demo.util.{DSHandler, DataUtils}
 import org.apache.spark.ml.feature.QuantileDiscretizer
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.DoubleType
@@ -118,7 +118,7 @@ object FeatureBinning3 extends App {
     """
       |select
       |bins.feature as index_name,
-      |bin,
+      |concat_ws(',',bin) as bin,
       |min,
       |max,
       |binSamples as bins_sample_count,
@@ -130,20 +130,22 @@ object FeatureBinning3 extends App {
       |((overdueCount / totalOverdue) - (notOverdueCount / totalNotOverdue)) * log((overdueCount / totalOverdue) / (notOverdueCount / totalNotOverdue)) as IV
       |from bins left join master on bins.feature = master.feature
     """.stripMargin)
+  DSHandler.save2MysqlDb(resDF, "bins_index")
 
   val totalResDf = resDF.groupBy("index_name").agg(
     lit("TOTAL").as("bin"),
-    max("max").as("max"),
     min("min").as("min"),
+    max("max").as("max"),
     sum("bins_sample_count").as("bins_sample_count"),
     lit(1).as("bins_sample_percent"),
-    max("overdue_count").as("overdue_count"),
+    sum("overdue_count").as("overdue_count"),
     sum("overdue_count_percent").as("overdue_count_percent"),
     lit(100).as("lift"),
     lit(0).as("WOE"),
     sum("IV").as("IV")
-  ).show()
+  )
   println(s"final total index  end time:${DataUtils.getNowDate}")
 
+  DSHandler.save2MysqlDb(totalResDf, "bins_index")
   spark.stop()
 }
