@@ -22,7 +22,7 @@ object FeatureBinning extends App {
 
   ///user/hive/warehouse/base
   println(s"start load data time:${DataUtils.getNowDate}")
-  val test = loadCSVData("csv", "D:\\NewX\\ML\\docs\\testData\\base.csv")
+  val test = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base.csv")
   println(s"end load time:${DataUtils.getNowDate}")
 
   def loadCSVData(csv: String, filePath: String, hasHeader: Boolean = true) = {
@@ -71,8 +71,15 @@ object FeatureBinning extends App {
 
   var temp = ""
   for(item <- res){
-    println(item)
+    println("temp:", item)
+    /**
+      * (temp:,day7-Infinity-1.02.03.04.05.08.0Infinity)
+      * (temp:,m24-Infinity23.031.038.045.052.059.068.078.094.0Infinity)
+      * (temp:,m18-Infinity22.030.037.044.050.058.066.076.092.0Infinity)
+      * (temp:,m6-Infinity12.017.022.027.031.036.042.049.058.0Infinity)
+      */
     temp = temp + item + "\n"
   }
   println(temp)
+
 }

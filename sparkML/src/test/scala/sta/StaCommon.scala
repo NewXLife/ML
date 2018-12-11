@@ -23,7 +23,27 @@ object StaCommon extends App{
     buffer.toString()
   }
 
+//  val columns = Array("s1", "s2", "s3")
+//  println(getStackParams(columns:_*))
 
-  val columns = Array("s1", "s2", "s3")
-  println(getStackParams(columns:_*))
+  val testArray = Array(Double.NegativeInfinity, 20.0, 28.0, 34.0, 40.0, 46.0, 53.0, 60.0, 69.0, 82.0, Double.PositiveInfinity)
+  val testNumb = 53.0d
+ println( testArray.indices)
+  //(a, b]
+
+
+  def searchIndex(v2: Double, array: Array[Double]): Int = {
+    var temp = 0
+    for (i <- array.indices) if (v2 >= array(i)) temp += 1 else return temp
+    temp
+  }
+
+  val index = searchIndex2(100, testArray)
+  println(testArray(index-1), testArray(index))
+  def searchIndex2(v2: Double, array: Array[Double]): Int = {
+    var temp = 0
+    for (i <- array.indices) if (v2 > array(i)) temp += 1 else  temp
+    temp
+  }
+
 }
