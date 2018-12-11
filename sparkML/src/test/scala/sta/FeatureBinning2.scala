@@ -9,7 +9,10 @@ import scala.collection.mutable.ArrayBuffer
 
 object FeatureBinning2 extends App {
   val spark = SparkSession.builder().appName("test-binning").master("local[*]").getOrCreate()
-
+  spark.conf.set("spark.sql.inMemoryColumnarStorage.batchSize", 10000)
+  spark.conf.set("spark.sql.default.parallelism", 100)
+  spark.conf.set("spark.sql.shuffle.partitions", 20)
+  spark.conf.set("spark.sql.inMemoryColumnarStorage.compressed", value = true)
   spark.sparkContext.setLogLevel("ERROR")
 
   import org.apache.spark.sql.functions._
@@ -17,7 +20,7 @@ object FeatureBinning2 extends App {
 
   ///user/hive/warehouse/base
   println(s"start load data time:${DataUtils.getNowDate}")
-  val test = loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\base.csv")
+  val test = loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base.csv")
   println(s"end load time:${DataUtils.getNowDate}")
 
   def loadCSVData(csv: String, filePath: String, hasHeader: Boolean = true) = {
@@ -25,15 +28,13 @@ object FeatureBinning2 extends App {
     else spark.read.format(csv).load(filePath)
   }
 
-//  test.show()
+  //  test.show()
 
   //d14,ad,day7,m1,m3,m6,m12,m18,m24,m60
-  println(s"start time:${DataUtils.getNowDate}")
-//  val cols = "day7,m1,m3,m6,m12,m18,m24,m60"
-  val cols = "d14,day7,m1"
-  val testDf = test.selectExpr(cols.split(","): _*).coalesce(5).cache()
+  val cols = "d14,day7,m1,m3,m6,m12,m18,m24,m60"
+  //  val cols = "d14,day7,m1"
+  //  val testDf = test.selectExpr(cols.split(","): _*).withColumnRenamed("d14", "label").coalesce(5).cache()
 
-  testDf.show(5, truncate = 0)
   /**
     * +----+----+----+----+----+----+----+----+
     * |day7|m1  |m3  |m6  |m12 |m18 |m24 |m60 |
@@ -46,66 +47,73 @@ object FeatureBinning2 extends App {
     * +----+----+----+----+----+----+----+----+
     */
 
-  def getStackParams(s1: String, s2:String*):String ={
+  def getStackParams(s1: String, s2: String*): String = {
     val buffer = StringBuilder.newBuilder
     var size = 0
-    if(s1 != null) size =1
+    if (s1 != null) size = 1
     size += s2.length
     buffer ++= s"stack($size, '$s1', $s1"
-    for(s <- s2) buffer ++= s",'$s', $s"
+    for (s <- s2) buffer ++= s",'$s', $s"
     buffer ++= ")"
     buffer.toString()
   }
 
-  def getStackParams(s2:String*):String ={
+  def getStackParams(s2: String*): String = {
     val buffer = StringBuilder.newBuilder
     var size = 0
     size += s2.length
     buffer ++= s"stack($size "
-    for(s <- s2) buffer ++=  s",'$s', $s"
+    for (s <- s2) buffer ++= s",'$s', $s"
     buffer ++= ")"
     buffer.toString()
   }
 
-  val columns = testDf.columns
-  val row2ColDf = testDf.selectExpr("d14", s"${getStackParams(columns:_*)} as (feature, value)")
-  row2ColDf.show(5,truncate = 0)
+  println(s"start row2coldf time:${DataUtils.getNowDate}")
+  //day7,m1,m3,m6,m12,m18,m24,m60
+  val columns = Array("day7", "m1", "m3", "m6", "m12", "m18", "m24", "m60")
+  val row2ColDf = test.withColumnRenamed("d14", "label").selectExpr("label", s"${getStackParams(columns: _*)} as (feature, value)")
+  println(s"end row2coldf time:${DataUtils.getNowDate}")
   /**
-    * +---+-------+-----+
-    * |d14|feature|value|
-    * +---+-------+-----+
-    * |0  |day7   |-1.0 |
-    * |0  |m1     |2.0  |
-    * |0  |m3     |6.0  |
-    * |0  |m6     |13.0 |
-    * +---+-------+-----+
+    * +-----+-------+-----+
+    * |label|feature|value|
+    * +-----+-------+-----+
+    * |0    |day7   |-1.0 |
+    * |0    |m1     |2.0  |
+    * |0    |day7   |4.0  |
+    * |0    |m1     |5.0  |
+    * |0    |day7   |3.0  |
+    * +-----+-------+-----+
     */
   //  staDf.createOrReplaceTempView("test")
   //concat_ws(';',collect_set(callPhoneArray)) as callPhoneArrays
   //collect_set 将某字段的值进行去重汇总
   //collect_list 对某列不进行去重
-// val  sta2df = spark.sql("select feature, concat_ws(',',collect_list(value)) as NewValue from test group by feature")
-  val contactValueDF = row2ColDf.groupBy("feature").agg(
-    callUDF("concat_ws", lit(","), callUDF("collect_list", $"value")).as("value")
-  )
+  // val  sta2df = spark.sql("select feature, concat_ws(',',collect_list(value)) as NewValue from test group by feature")
+//  println(s"start concatValue time:${DataUtils.getNowDate}")
+//  val contactValueDF = row2ColDf.groupBy("feature").agg(
+//    callUDF("concat_ws", lit(","), callUDF("collect_list", $"value")).as("tValue")
+//  )
+//  println(s"end concatValue time:${DataUtils.getNowDate}")
 
-//  sta2df.show(100)
-
-  var  temspark: SparkSession =  null
+  var temspark: SparkSession = null
 
   println("good-----------result")
-//  val sta3Df = sta2df.except(sta2df.limit(3))
-def getBinsArray(bins:Array[Double]):Array[(Double, Double)] = {
-  val res = for (i <- 0 until bins.length - 1) yield (bins(i), bins(i + 1))
-  res.toArray
-}
+  //  val sta3Df = sta2df.except(sta2df.limit(3))
+  println(s"start getbinning time:${DataUtils.getNowDate}")
 
-  val binsArrayDF = contactValueDF.withColumn("bin", udf{ str:String => {
-    val res = for(t <- str.split(",") if str.nonEmpty) yield Tuple1(t)
-    if(temspark == null){
+  def getBinsArray(bins: Array[Double]): Array[(Double, Double)] = {
+    val res = for (i <- 0 until bins.length - 1) yield (bins(i), bins(i + 1))
+    res.toArray
+  }
+
+  val binsArrayDF = row2ColDf.groupBy("feature").agg(
+    callUDF("concat_ws", lit(","), callUDF("collect_list", $"value")).as("tValue")
+  ).withColumn("bin", udf { str: String => {
+    val res = for (t <- str.split(",") if str.nonEmpty) yield Tuple1(t)
+    if (temspark == null) {
       temspark = SparkSession.builder().master("local[*]").getOrCreate()
     }
-    val tempDF = temspark.createDataFrame(res.toSeq).toDF("f").coalesce(4)
+    val tempDF = temspark.createDataFrame(res.toSeq).toDF("f").coalesce(5)
     val qd = new QuantileDiscretizer().setInputCol("f").setNumBuckets(10).setHandleInvalid("skip").fit(tempDF.select($"f".cast(DoubleType)))
     var interval = qd.getSplits
     if (interval.map(_ < 0).length >= 2) {
@@ -114,15 +122,15 @@ def getBinsArray(bins:Array[Double]):Array[(Double, Double)] = {
       interval = t.toArray
     }
     interval
-  }}.apply(col("value"))).coalesce(4).cache()
+  }
+  }.apply(col("tValue"))).coalesce(4).cache()
 
-  if(temspark !=null ) temspark.stop()
+  if (temspark != null) temspark.stop()
+  println(s"end getbinning time:${DataUtils.getNowDate}")
 
-  binsArrayDF.show(10 ,truncate = 0)
-  binsArrayDF.printSchema()
   /**
     * +-------+---------------------------------------------------------------------------+
-    * |feature|  value                                   array(double)                    |
+    * |feature|  bin                                   array(double)                    |
     * +-------+---------------------------------------------------------------------------+
     * |m12    |[-Infinity, 20.0, 28.0, 34.0, 40.0, 46.0, 53.0, 60.0, 69.0, 82.0, Infinity]|
     * |m3     |[-Infinity, 7.0, 11.0, 15.0, 18.0, 22.0, 26.0, 31.0, 37.0, 45.0, Infinity] |
@@ -132,38 +140,34 @@ def getBinsArray(bins:Array[Double]):Array[(Double, Double)] = {
     * |m1     |[-Infinity, 2.0, 3.0, 5.0, 6.0, 8.0, 10.0, 12.0, 16.0, 21.0, Infinity]     |
     * +-------+---------------------------------------------------------------------------+
     */
-  println(s"end time:${DataUtils.getNowDate}")
 
+  println(s"start row2coldf join binsarray time:${DataUtils.getNowDate}")
   val row2ColBinsArrayDF = row2ColDf.join(binsArrayDF, Seq("feature"), "left")
+  println(s"end row2coldf join binsarray time:${DataUtils.getNowDate}")
+
   //movies.withColumn("genre", explode(split($"genre", "[|]"))).show  一行切割为多行
-//  fres.withColumn("newValue", explode(split($"newValue","[,]"))).show()
+  //  fres.withColumn("newValue", explode(split($"newValue","[,]"))).show()
   def searchIndex2(v2: Double, array: Array[Double]): Int = {
     var temp = 0
-    for (i <- array.indices) if (v2 > array(i)) temp += 1 else  temp
+    for (i <- array.indices) if (v2 > array(i)) temp += 1 else temp
     temp
   }
 
-  val binsDF = row2ColBinsArrayDF.withColumn("bin",splitBinning($"value", $"bin"))
-  /**
-    * +-------+---+-----+--------------------+
-    * |feature|d14|value|            bin     |
-    * +-------+---+-----+--------------------+
-    * |    d14|  0|    0|[-Infinity, Infin...|
-    * |   day7|  0| -1.0|    [-Infinity, 2.0]|
-    * |     m1|  0|  2.0|    [-Infinity, 2.0]|
-    * |    d14|  0|    0|[-Infinity, Infin...|
-    * |   day7|  0|  4.0|          [3.0, 4.0]|
-    * |     m1|  0|  5.0|          [3.0, 5.0]|
-    * --------|---|-----|--------------------
-    */
-  val binsResDF = binsDF.groupBy("feature","bin").agg(
+  println(s"start focus bin join binsarray time:${DataUtils.getNowDate}")
+  val binsDF = row2ColBinsArrayDF.withColumn("bin", splitBinning($"value", $"bin"))
+  println(s"end focus bin join binsarray time:${DataUtils.getNowDate}")
+
+  println(s"start innerbin index join binsarray time:${DataUtils.getNowDate}")
+  val binsResDF = binsDF.groupBy("feature", "bin").agg(
     count("value").as("binSamples"),
     min("value").as("min"),
     max("value").as("max"),
-    sum(when($"d14" >0, 1).otherwise(0)).as("overdueCount"),
-    sum(when($"d14" ===0, 1).otherwise(0)).as("notOverdueCount"),
-    (sum(when($"d14" >0, 1).otherwise(0)).as("overdueCount") / count("value").as("binSamples")).as("overdueCountPercent")
+    sum(when($"label" > 0, 1).otherwise(0)).as("overdueCount"),
+    sum(when($"label" === 0, 1).otherwise(0)).as("notOverdueCount"),
+    (sum(when($"label" > 0, 1).otherwise(0)).as("overdueCount") / count("value").as("binSamples")).as("overdueCountPercent")
   ).orderBy("feature", "bin")
+
+  println(s"end innerbin index join binsarray time:${DataUtils.getNowDate}")
 
   /**
     * +-------+--------------------+----------+------------+---------------+--------------------+
@@ -178,20 +182,21 @@ def getBinsArray(bins:Array[Double]):Array[(Double, Double)] = {
     */
 
 
-  row2ColBinsArrayDF.printSchema()
-//  case class Result ( date: String, usage: Double )
-  def splitBinning = udf{(value: String, binsArray:Seq[Double]) =>
+  //  case class Result ( date: String, usage: Double )
+  def splitBinning = udf { (value: String, binsArray: Seq[Double]) =>
     val index = searchIndex2(value.toDouble, binsArray.toArray)
-    Array(binsArray(index-1), binsArray(index))
+    Array(binsArray(index - 1), binsArray(index))
   }
 
   //   IV，分箱，最小，最大，样本量，样本占比，违约样本量，违约率，lift
+  println(s"start master index join binsarray time:${DataUtils.getNowDate}")
   val masterDf = row2ColBinsArrayDF.groupBy("feature").agg(
     count("value").as("totalSamples"),
-    sum(when($"d14" >0, 1).otherwise(0)).as("totalOverdue"),
-    sum(when($"d14" ===0, 1).otherwise(0)).as("totalNotOverdue"),
-    (sum(when($"d14" >0, 1).otherwise(0)).as("totalOverdue") / sum(when($"d14" ===0, 1).otherwise(0)).as("totalNotOverdue")).as("totalOverduePercent")
+    sum(when($"label" > 0, 1).otherwise(0)).as("totalOverdue"),
+    sum(when($"label" === 0, 1).otherwise(0)).as("totalNotOverdue"),
+    (sum(when($"label" > 0, 1).otherwise(0)).as("totalOverdue") / sum(when($"label" === 0, 1).otherwise(0)).as("totalNotOverdue")).as("totalOverduePercent")
   )
+  println(s"end master index join binsarray time:${DataUtils.getNowDate}")
   /**
     * +-------+------------+---------------+-------------------+
     * |feature|totalOverdue|totalNotOverdue|totalOverduePercent|
@@ -203,6 +208,8 @@ def getBinsArray(bins:Array[Double]):Array[(Double, Double)] = {
     */
   masterDf.createOrReplaceTempView("master")
   binsResDF.createOrReplaceTempView("bins")
+
+  println(s"final join index start time:${DataUtils.getNowDate}")
   val resDF = spark.sql(
     """
       |select
@@ -225,9 +232,9 @@ def getBinsArray(bins:Array[Double]):Array[(Double, Double)] = {
       |((overdueCount / totalOverdue) - (notOverdueCount / totalNotOverdue)) * log((overdueCount / totalOverdue) / (notOverdueCount / totalNotOverdue)) as oneIv
       |from bins left join master on bins.feature = master.feature
     """.stripMargin)
+  println(s"final join index  end time:${DataUtils.getNowDate}")
 
-  resDF.show()
-
+  println(s"final total index  start time:${DataUtils.getNowDate}")
   resDF.groupBy("feature").agg(
     lit("TOTAL").as("bin"),
     max("totalSamples").as("binSamples"),
@@ -238,6 +245,7 @@ def getBinsArray(bins:Array[Double]):Array[(Double, Double)] = {
     lit(0).as("woeV"),
     sum("oneIv").as("IV")
   ).show()
+  println(s"final total index  end time:${DataUtils.getNowDate}")
 
   spark.stop()
 }
