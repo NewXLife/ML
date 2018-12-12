@@ -29,11 +29,25 @@ object StaTestDFGroupyByKey extends App{
 
   val ds = staDf.select("feature","value").as[Feature]
   ds.show()
-  ds.map(line => (line.feature, line.value)).show()
+
+
+
+//  ds.groupByKey(x => x.feature).mapValues(v => )
+//  ds.map(line => (line.feature, line.value)).show()
 
   val df1 = staDf.select("feature","value")
-  df1.groupBy("feature").agg(
-    callUDF("contactRowsUDF", $"value").as("newValue")
-  ).show()
+  df1.groupByKey(x => x.getAs(0)).agg()
+//  df1.groupBy("feature").agg(
+//    callUDF("contactRowsUDF", $"value").as("newValue")
+//  ).show()
+
+  val PARTITION_SIZE = 10
+  val keyedRDD = df1.map(row => List(Feature(
+    row.getAs(0).toString,
+    row.getAs(1).toString
+  )))
+keyedRDD.show()
+  val reduced = keyedRDD.reduce(_:::_)
+  println(reduced.mkString(","))
 
 }
