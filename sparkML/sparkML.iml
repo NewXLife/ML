@@ -11,6 +11,8 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Maven: ml.dmlc:xgboost4j-spark:0.80" level="project" />
+    <orderEntry type="library" name="Maven: ml.dmlc:xgboost4j:0.80" level="project" />
     <orderEntry type="library" name="Maven: org.apache.livy:livy-client-http:0.5.0-incubating" level="project" />
     <orderEntry type="library" name="Maven: org.apache.livy:livy-api:0.5.0-incubating" level="project" />
     <orderEntry type="library" name="Maven: org.apache.livy:livy-scala-api_2.11:0.5.0-incubating" level="project" />

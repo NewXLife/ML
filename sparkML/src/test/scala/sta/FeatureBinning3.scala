@@ -18,7 +18,7 @@ object FeatureBinning3 extends App {
 
   ///user/hive/warehouse/base
   println(s"start load data time:${DataUtils.getNowDate}")
-  val test = loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\tongdun.csv")
+  val test = loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\tongdun.csv")
 
   def loadCSVData(csv: String, filePath: String, hasHeader: Boolean = true) = {
     if (hasHeader) spark.read.format(csv).option("header", "true").load(filePath)
@@ -59,9 +59,11 @@ object FeatureBinning3 extends App {
     res.toArray
   }
 
-  val binsArrayDF = row2ColDf.groupBy("feature").agg(
+  val tempDf = row2ColDf.groupBy("feature").agg(
     callUDF("concat_ws", lit(","), callUDF("collect_list", $"value")).as("tValue")
-  ).withColumn("bin", udf { str: String => {
+  )
+
+  val binsArrayDF = tempDf.withColumn("bin", udf { str: String => {
     val res = for (t <- str.split(",") if str.nonEmpty) yield Tuple1(t)
     if (temspark == null) {
       temspark = SparkSession.builder().master("local[*]").getOrCreate()
