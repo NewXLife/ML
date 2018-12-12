@@ -1,13 +1,15 @@
 package sta
 
-import com.niuniuzcd.demo.util.DataUtils
+import com.niuniuzcd.demo.util.{DSHandler, DataUtils}
 import org.apache.spark.ml.feature.QuantileDiscretizer
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.types.DoubleType
+import org.apache.spark.sql.types.{DoubleType, StringType}
 
 import scala.collection.mutable.ArrayBuffer
 
 object FeatureBinning2 extends App {
+
+  //自定义spark运行方式
   val spark = SparkSession.builder().appName("test-binning").master("local[*]").getOrCreate()
   spark.conf.set("spark.sql.inMemoryColumnarStorage.batchSize", 10000)
   spark.conf.set("spark.sql.default.parallelism", 100)
@@ -19,19 +21,24 @@ object FeatureBinning2 extends App {
   import spark.implicits._
 
   ///user/hive/warehouse/base
-  println(s"start load data time:${DataUtils.getNowDate}")
-  val test = loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base.csv")
-  println(s"end load time:${DataUtils.getNowDate}")
+  /**
+    * step 1,load data from hive
+    */
+//  val test = spark.sql("select * from dw_tmp.lk_statistic_table")
+
+val test = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\tongdun1.csv").cache().coalesce(10)
+  test.show(20, truncate = 0)
+  test.na.fill("-1").show(20, truncate = 0)
+
 
   def loadCSVData(csv: String, filePath: String, hasHeader: Boolean = true) = {
     if (hasHeader) spark.read.format(csv).option("header", "true").load(filePath)
     else spark.read.format(csv).load(filePath)
   }
-
   //  test.show()
 
   //d14,ad,day7,m1,m3,m6,m12,m18,m24,m60
-  val cols = "d14,day7,m1,m3,m6,m12,m18,m24,m60"
+//  val cols = "d14,day7,m1,m3,m6,m12,m18,m24,m60"
   //  val cols = "d14,day7,m1"
   //  val testDf = test.selectExpr(cols.split(","): _*).withColumnRenamed("d14", "label").coalesce(5).cache()
 
@@ -68,11 +75,18 @@ object FeatureBinning2 extends App {
     buffer.toString()
   }
 
-  println(s"start row2coldf time:${DataUtils.getNowDate}")
   //day7,m1,m3,m6,m12,m18,m24,m60
-  val columns = Array("day7", "m1", "m3", "m6", "m12", "m18", "m24", "m60")
-  val row2ColDf = test.withColumnRenamed("d14", "label").selectExpr("label", s"${getStackParams(columns: _*)} as (feature, value)")
-  println(s"end row2coldf time:${DataUtils.getNowDate}")
+  /**
+    * feature columns
+    */
+  val labelCol = "7d"
+  val featureCols = test.columns.toBuffer
+  val excludeCol = Array("1d", labelCol,"etl_time","dt")
+  for( col <- excludeCol) featureCols.remove(featureCols.indexOf(col))
+
+ //输入所有的连续特征大概453个左右，特征数目可以通过slice 切分
+  val row2ColDf = test.withColumnRenamed(labelCol, "label").selectExpr("label", s"${getStackParams(featureCols: _*)} as (feature, value)")
+  row2ColDf.show(20, truncate = 0)
   /**
     * +-----+-------+-----+
     * |label|feature|value|
@@ -105,15 +119,19 @@ object FeatureBinning2 extends App {
     val res = for (i <- 0 until bins.length - 1) yield (bins(i), bins(i + 1))
     res.toArray
   }
+  val tempDf = row2ColDf.groupBy("feature").agg(
+    callUDF("concat_ws", lit(","), callUDF("collect_list", $"value".cast(StringType))).as("tValue")
+  )
 
-  val binsArrayDF = row2ColDf.groupBy("feature").agg(
-    callUDF("concat_ws", lit(","), callUDF("collect_list", $"value")).as("tValue")
-  ).withColumn("bin", udf { str: String => {
+  println("tempdf-----------")
+  tempDf.show()
+
+  val binsArrayDF = tempDf.withColumn("bin", udf { str: String => {
     val res = for (t <- str.split(",") if str.nonEmpty) yield Tuple1(t)
     if (temspark == null) {
       temspark = SparkSession.builder().master("local[*]").getOrCreate()
     }
-    val tempDF = temspark.createDataFrame(res.toSeq).toDF("f").coalesce(5)
+    val tempDF = temspark.createDataFrame(res.toSeq).toDF("f").coalesce(4)
     val qd = new QuantileDiscretizer().setInputCol("f").setNumBuckets(10).setHandleInvalid("skip").fit(tempDF.select($"f".cast(DoubleType)))
     var interval = qd.getSplits
     if (interval.map(_ < 0).length >= 2) {
@@ -123,11 +141,12 @@ object FeatureBinning2 extends App {
     }
     interval
   }
-  }.apply(col("tValue"))).coalesce(4).cache()
+  }.apply(col("tValue"))).coalesce(4)
 
   if (temspark != null) temspark.stop()
   println(s"end getbinning time:${DataUtils.getNowDate}")
 
+  binsArrayDF.show()
   /**
     * +-------+---------------------------------------------------------------------------+
     * |feature|  bin                                   array(double)                    |
@@ -232,10 +251,15 @@ object FeatureBinning2 extends App {
       |((overdueCount / totalOverdue) - (notOverdueCount / totalNotOverdue)) * log((overdueCount / totalOverdue) / (notOverdueCount / totalNotOverdue)) as oneIv
       |from bins left join master on bins.feature = master.feature
     """.stripMargin)
+
+  resDF.show(5)
+  //持久化,如csv->hdfs
+  //res2.coalesce(10).write.format("csv").save("")
+
   println(s"final join index  end time:${DataUtils.getNowDate}")
 
   println(s"final total index  start time:${DataUtils.getNowDate}")
-  resDF.groupBy("feature").agg(
+  val res2 = resDF.groupBy("feature").agg(
     lit("TOTAL").as("bin"),
     max("totalSamples").as("binSamples"),
     lit(1).as("binsSamplesPercent"),
@@ -244,7 +268,12 @@ object FeatureBinning2 extends App {
     lit(100).as("liftIndex"),
     lit(0).as("woeV"),
     sum("oneIv").as("IV")
-  ).show()
+  ).show(5)
+
+  //持久化,如csv->hdfs
+  //res2.coalesce(10).write.format("csv").save("")
+
+
   println(s"final total index  end time:${DataUtils.getNowDate}")
 
   spark.stop()

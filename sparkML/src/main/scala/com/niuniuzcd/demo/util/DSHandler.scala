@@ -38,6 +38,8 @@ object DSHandler {
     println("last step save2db")
     jdbcDF.coalesce(100).write.mode(saveMode).jdbc(url, dbTable, connectionProperties)
   }
+
+
 }
 
 

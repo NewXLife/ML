@@ -18,14 +18,12 @@ object FeatureBinning3 extends App {
 
   ///user/hive/warehouse/base
   println(s"start load data time:${DataUtils.getNowDate}")
-  val test = loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base.csv")
+  val test = loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\tongdun.csv")
 
   def loadCSVData(csv: String, filePath: String, hasHeader: Boolean = true) = {
     if (hasHeader) spark.read.format(csv).option("header", "true").load(filePath)
     else spark.read.format(csv).load(filePath)
   }
-
-  val cols = "d14,day7,m1,m3,m6,m12,m18,m24,m60"
 
   def getStackParams(s1: String, s2: String*): String = {
     val buffer = StringBuilder.newBuilder
@@ -48,8 +46,12 @@ object FeatureBinning3 extends App {
     buffer.toString()
   }
 
-  val columns = Array("day7", "m1", "m3", "m6", "m12", "m18", "m24", "m60")
-  val row2ColDf = test.withColumnRenamed("d14", "label").selectExpr("label", s"${getStackParams(columns: _*)} as (feature, value)")
+  val labelCol = "7d"
+  val featureCols = test.columns.toBuffer
+  val excludeCol = Array("1d", labelCol,"td_discredit_name","td_fraud_name","etl_time","dt","apply_risk_created_at")
+  for( col <- excludeCol) featureCols.remove(featureCols.indexOf(col))
+
+  val row2ColDf = test.withColumnRenamed(labelCol, "label").selectExpr("label", s"${getStackParams(featureCols: _*)} as (feature, value)")
 
   var temspark: SparkSession = null
   def getBinsArray(bins: Array[Double]): Array[(Double, Double)] = {
@@ -99,7 +101,8 @@ object FeatureBinning3 extends App {
 
   def splitBinning = udf { (value: String, binsArray: Seq[Double]) =>
     val index = searchIndex2(value.toDouble, binsArray.toArray)
-    Array(binsArray(index - 1), binsArray(index))
+    "(" +binsArray(index - 1)+ ","+binsArray(index) + ")"
+//    Array(binsArray(index - 1), binsArray(index))
   }
 
   println(s"start master index join binsarray time:${DataUtils.getNowDate}")
@@ -118,7 +121,7 @@ object FeatureBinning3 extends App {
     """
       |select
       |bins.feature as index_name,
-      |concat_ws(',',bin) as bin,
+      |bin,
       |min,
       |max,
       |binSamples as bins_sample_count,
@@ -130,7 +133,7 @@ object FeatureBinning3 extends App {
       |((overdueCount / totalOverdue) - (notOverdueCount / totalNotOverdue)) * log((overdueCount / totalOverdue) / (notOverdueCount / totalNotOverdue)) as IV
       |from bins left join master on bins.feature = master.feature
     """.stripMargin)
-  DSHandler.save2MysqlDb(resDF, "bins_index")
+//  DSHandler.save2MysqlDb(resDF, "bins_index")
 
   val totalResDf = resDF.groupBy("index_name").agg(
     lit("TOTAL").as("bin"),
@@ -143,9 +146,9 @@ object FeatureBinning3 extends App {
     lit(100).as("lift"),
     lit(0).as("WOE"),
     sum("IV").as("IV")
-  )
+  ).show()
   println(s"final total index  end time:${DataUtils.getNowDate}")
 
-  DSHandler.save2MysqlDb(totalResDf, "bins_index")
+//  DSHandler.save2MysqlDb(totalResDf, "bins_index")
   spark.stop()
 }
