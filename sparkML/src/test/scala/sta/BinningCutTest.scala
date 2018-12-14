@@ -5,15 +5,14 @@ import scala.collection.mutable.ArrayBuffer
 
 object BinningCutTest extends App {
 
-  def cutMain(min:Double, max:Double, bins:Int) ={
-    var cut_points = cut(min, max, bins)
-    println(cut_points.mkString(","))
+  def cut(min:Double, max:Double, bins:Int) ={
+    var cut_points = cutMain(min, max, bins)
     cut_points = Double.NegativeInfinity +: cut_points
     cut_points = cut_points :+ Double.PositiveInfinity
     cut_points
   }
 
-  def cut(min:Double, max:Double, bins:Int) = {
+  def cutMain(min:Double, max:Double, bins:Int) = {
     val bin = bins + 1
     val right = true
     var mn = min
@@ -74,6 +73,6 @@ object BinningCutTest extends App {
     ab
   }
 
-  println(cutMain(20, 61, 3).mkString(","))
+  println(cut(20, 61, 3).mkString(","))
 
 }
