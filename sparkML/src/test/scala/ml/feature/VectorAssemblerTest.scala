@@ -61,7 +61,7 @@ object VectorAssemblerTest extends SparkTools {
 
   def String2DoubleType(df: DataFrame, fields: Array[String]): DataFrame = {
     import org.apache.spark.sql.functions._
-    df.select(colsName.map(f => col(f).cast(DoubleType)): _*)
+    df.select(fields.map(f => col(f).cast(DoubleType)): _*)
   }
 
 }

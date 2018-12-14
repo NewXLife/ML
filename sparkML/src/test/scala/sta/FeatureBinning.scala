@@ -11,6 +11,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object FeatureBinning extends App {
   val spark = SparkSession.builder().appName("test-ds").master("local[*]").getOrCreate()
+
   import scala.collection.JavaConversions._
   import spark.implicits._
   import org.apache.spark.sql.functions._
@@ -30,7 +31,7 @@ object FeatureBinning extends App {
     else spark.read.format(csv).load(filePath)
   }
 
-//  test.show()
+  //  test.show()
 
   //d14,ad,day7,m1,m3,m6,m12,m18,m24,m60
   val cols = "day7,m1,m3,m6,m12,m18,m24,m60"
@@ -44,34 +45,37 @@ object FeatureBinning extends App {
       var value = row.getAs[String](fieldName)
       if (value != null) {
         val temp = value.toString
-        if(temp == null || temp.trim.isEmpty) value = null
+        if (temp == null || temp.trim.isEmpty) value = null
         rows +:= (fieldName, value)
       }
     }
     rows.iterator
-  }).groupByKey().cache()
+  })
+
+  val res1 = res.groupByKey().cache()
     .map(row => {
       var datas = Seq[Tuple1[String]]()
       for (v <- row._2) {
         if (v != null) {
-          datas  = datas :+ Tuple1(v)
+          datas = datas :+ Tuple1(v)
         }
       }
-//        val schema = StructType(Array(StructField("valueField", DoubleType, nullable = true)))
+      //        val schema = StructType(Array(StructField("valueField", DoubleType, nullable = true)))
       val sk = SparkSession.builder().master("local[2]").getOrCreate().createDataFrame(datas).toDF("valueField")
-        val bucketizer = new QuantileDiscretizer().setInputCol("valueField").setNumBuckets(10).setRelativeError(0d).setHandleInvalid("skip").fit(sk.select($"valueField".cast(DoubleType)))
-        var res = row._1
-        for( d <- bucketizer.getSplits){
-          println(d)
-          res = res + "" + d
-        }
+      val bucketizer = new QuantileDiscretizer().setInputCol("valueField").setNumBuckets(10).setRelativeError(0d).setHandleInvalid("skip").fit(sk.select($"valueField".cast(DoubleType)))
+      var res = row._1
+      for (d <- bucketizer.getSplits) {
+        println(d)
+        res = res + "" + d
+      }
       res
     }).collect()
   println(s"end time:${DataUtils.getNowDate}")
 
   var temp = ""
-  for(item <- res){
+  for (item <- res) {
     println("temp:", item)
+
     /**
       * (temp:,day7-Infinity-1.02.03.04.05.08.0Infinity)
       * (temp:,m24-Infinity23.031.038.045.052.059.068.078.094.0Infinity)

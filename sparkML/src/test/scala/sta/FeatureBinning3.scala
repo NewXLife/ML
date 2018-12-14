@@ -2,8 +2,9 @@ package sta
 
 import com.niuniuzcd.demo.util.{DSHandler, DataUtils}
 import org.apache.spark.ml.feature.QuantileDiscretizer
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.types.DoubleType
+import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.types._
+import sta.StaTestDFGroupyByKey.{df1, spark}
 
 object FeatureBinning3 extends App {
   val spark = SparkSession.builder().appName("test-binning").master("local[*]").getOrCreate()
@@ -18,7 +19,9 @@ object FeatureBinning3 extends App {
 
   ///user/hive/warehouse/base
   println(s"start load data time:${DataUtils.getNowDate}")
-  val test = loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\tongdun.csv")
+  val test = loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\tongdun1.csv").limit(10)
+  println(s"total:${test.count()}")
+  test.show(100, truncate = 0)
 
   def loadCSVData(csv: String, filePath: String, hasHeader: Boolean = true) = {
     if (hasHeader) spark.read.format(csv).option("header", "true").load(filePath)
@@ -48,7 +51,7 @@ object FeatureBinning3 extends App {
 
   val labelCol = "7d"
   val featureCols = test.columns.toBuffer
-  val excludeCol = Array("1d", labelCol,"td_discredit_name","td_fraud_name","etl_time","dt","apply_risk_created_at")
+  val excludeCol = Array("1d", labelCol,"etl_time","dt")
   for( col <- excludeCol) featureCols.remove(featureCols.indexOf(col))
 
   val row2ColDf = test.withColumnRenamed(labelCol, "label").selectExpr("label", s"${getStackParams(featureCols: _*)} as (feature, value)")
@@ -59,29 +62,42 @@ object FeatureBinning3 extends App {
     res.toArray
   }
 
-  val tempDf = row2ColDf.groupBy("feature").agg(
-    callUDF("concat_ws", lit(","), callUDF("collect_list", $"value")).as("tValue")
-  )
+//  val tempDf = row2ColDf.groupBy("feature").agg(
+//    callUDF("concat_ws", lit(","), callUDF("collect_list", $"value")).as("tValue")
+//  )
 
-  val binsArrayDF = tempDf.withColumn("bin", udf { str: String => {
-    val res = for (t <- str.split(",") if str.nonEmpty) yield Tuple1(t)
-    if (temspark == null) {
-      temspark = SparkSession.builder().master("local[*]").getOrCreate()
+  val res = row2ColDf.selectExpr("feature", "cast(value as string)").rdd.map(x => (x.getAs[String](0), x.getAs[String](1))).groupByKey().cache().map(row =>{
+    var datas = Seq[Tuple1[String]]()
+    for (v <- row._2) {
+      if (v != null && v!= "NULL" && v != "null") {
+        datas = datas :+ Tuple1(v)
+      }
     }
-    val tempDF = temspark.createDataFrame(res.toSeq).toDF("f").coalesce(5)
-    val qd = new QuantileDiscretizer().setInputCol("f").setNumBuckets(10).setHandleInvalid("skip").fit(tempDF.select($"f".cast(DoubleType)))
-    var interval = qd.getSplits
-    if (interval.map(_ < 0).length >= 2) {
-      var t = interval.filter(x => x > 0).toBuffer
-      t +:= Double.NegativeInfinity
-      interval = t.toArray
-    }
-    interval
-  }
-  }.apply(col("tValue"))).coalesce(4).cache()
+    val sk = SparkSession.builder().master("local[2]").getOrCreate().createDataFrame(datas).toDF("valueField")
+    val bucketizer = new QuantileDiscretizer().setInputCol("valueField").setNumBuckets(10).setRelativeError(0d).setHandleInvalid("skip").fit(sk.select($"valueField".cast(DoubleType)))
+    Row(row._1, bucketizer.getSplits)
+  })
 
-  if (temspark != null) temspark.stop()
+  //  res.collect().foreach(println(_))
+  val schema = StructType(Array(StructField("feature",StringType,true),StructField("bin",DataTypes.createArrayType(DoubleType),true)))
+  val binsArrayDF = spark.createDataFrame(res, schema)
+  println("binsarray dataframe------------------")
+  binsArrayDF.show(100, truncate = 0)
+  /**
+    * +----------------------------------+--------------------------------------------------------------+
+    * |feature                           |bin                                                           |
+    * +----------------------------------+--------------------------------------------------------------+
+    * |td_7day_platform_count_for_model  |[-Infinity, 0.0, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0, Infinity]     |
+    * |td_7d_euquipment_num_m            |[-Infinity, 0.0, Infinity]                                    |
+    * |td_6month_platform_count          |[-Infinity, 3.0, 14.0, 21.0, 40.0, 44.0, 47.0, 54.0, Infinity]|
+    * |td_1month_platform_count_for_model|[-Infinity, 3.0, 7.0, 18.0, 19.0, 27.0, Infinity]             |
+    * |overdue_days                      |[-Infinity, -1.0, 0.0, 1.0, Infinity]                         |
+    * +----------------------------------+--------------------------------------------------------------+
+    */
+  row2ColDf.join(binsArrayDF, Seq("feature"), "left").show(10, truncate = 0)
   val row2ColBinsArrayDF = row2ColDf.join(binsArrayDF, Seq("feature"), "left")
+  println("row2ColBinsArrayDF---------")
+//  row2ColBinsArrayDF.show(5)
 
   def searchIndex2(v2: Double, array: Array[Double]): Int = {
     var temp = 0
@@ -102,9 +118,12 @@ object FeatureBinning3 extends App {
 
 
   def splitBinning = udf { (value: String, binsArray: Seq[Double]) =>
-    val index = searchIndex2(value.toDouble, binsArray.toArray)
-    "(" +binsArray(index - 1)+ ","+binsArray(index) + ")"
-//    Array(binsArray(index - 1), binsArray(index))
+    if(value != null && !value.equals("null") && !value.equals("NULL")){
+      val index = searchIndex2(value.toDouble, binsArray.toArray)
+      "(" +binsArray(index - 1)+ ","+binsArray(index) + ")"
+    }else{
+      "("+ "missing-value" +")"
+    }
   }
 
   println(s"start master index join binsarray time:${DataUtils.getNowDate}")
@@ -114,6 +133,8 @@ object FeatureBinning3 extends App {
     sum(when($"label" === 0, 1).otherwise(0)).as("totalNotOverdue"),
     (sum(when($"label" > 0, 1).otherwise(0)).as("totalOverdue") / sum(when($"label" === 0, 1).otherwise(0)).as("totalNotOverdue")).as("totalOverduePercent")
   )
+  println("masterdf ------------")
+  masterDf.show(5)
 
   masterDf.createOrReplaceTempView("master")
   binsResDF.createOrReplaceTempView("bins")
@@ -136,6 +157,7 @@ object FeatureBinning3 extends App {
       |from bins left join master on bins.feature = master.feature
     """.stripMargin)
 //  DSHandler.save2MysqlDb(resDF, "bins_index")
+  resDF.show(10)
 
   val totalResDf = resDF.groupBy("index_name").agg(
     lit("TOTAL").as("bin"),
