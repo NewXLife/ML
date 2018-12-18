@@ -1,6 +1,6 @@
 package sta
 
-object Utils {
+object Tools {
 
   def getStackParams(s1: String, s2: String*): String = {
     val buffer = StringBuilder.newBuilder

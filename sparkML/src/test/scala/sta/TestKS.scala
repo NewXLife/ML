@@ -22,7 +22,7 @@ private[sta] object TestKS extends App{
   val featureCols = Array("day7","m1","m3","m6","m12","m18","m24","m60")
 
 
-  val row2ColDf = test.withColumnRenamed("d14", "label").selectExpr("label", s"${Utils.getStackParams(featureCols: _*)} as (feature, value)")
+  val row2ColDf = test.withColumnRenamed("d14", "label").selectExpr("label", s"${Tools.getStackParams(featureCols: _*)} as (feature, value)")
 
   def loadCSVData(csv: String, filePath: String, hasHeader: Boolean = true) = {
     if (hasHeader) spark.read.format(csv).option("header", "true").load(filePath)
