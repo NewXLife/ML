@@ -1,15 +1,37 @@
 package sta
 
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.{callUDF, col, lit, udf}
 
 import scala.collection.mutable.ArrayBuffer
 
-object BinningCutTest extends App {
+class BinningMethod {
 
-  val testarray = Array(.2, 1.4, 2.5, 6.2, 9.7, 2.1)
-  //-1, 4, 3, -1
+  def qcut(df: DataFrame, binsNum:Int = 10):DataFrame = {
+    import df.sparkSession.implicits._
+    val tempDf = df.groupBy("feature").agg(
+      callUDF("percentile_approx", $"value", lit((0.0 to 1.0 by 1.0/binsNum).toArray)).as("bin")
+    )
 
-  val  res= cut(-1, 4, 5)
-  println(res)
+    tempDf.show(20, truncate = 0)
+
+    val binsArrayDF = tempDf.withColumn("bin", udf{ splits:Seq[Double] =>
+      if(splits != null){
+        var buffer = splits.toBuffer
+        buffer(0) =  Double.NegativeInfinity
+        buffer(buffer.length - 1) = Double.PositiveInfinity
+        buffer =  Double.NegativeInfinity +: buffer.filter(_ >0)
+        buffer.distinct.toArray
+      }else{
+        Array(Double.NegativeInfinity, Double.PositiveInfinity)
+      }
+
+    }.apply(col("bin")))
+
+    binsArrayDF
+  }
+
+
   def cut(min:Double, max:Double, bins:Int) ={
     var cut_points = cutMain(min, max, bins)
     cut_points = Double.NegativeInfinity +: cut_points.drop(1).dropRight(1)
@@ -77,4 +99,5 @@ object BinningCutTest extends App {
     }
     ab
   }
+
 }

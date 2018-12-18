@@ -1,13 +1,8 @@
 package sta
 
-import com.niuniuzcd.demo.util.Tools
 import org.apache.spark.ml.feature.QuantileDiscretizer
 import org.apache.spark.sql.{Row, SparkSession}
-import org.apache.spark.sql.functions.callUDF
 import org.apache.spark.sql.types._
-import util.SparkTools
-
-import scala.collection.mutable.ArrayBuffer
 case class Feature(feature:String, value:String)
 object StaTestDFGroupyByKey extends App{
   val spark = SparkSession.builder().appName("test").master("local[*]").getOrCreate()
@@ -18,6 +13,8 @@ object StaTestDFGroupyByKey extends App{
   val testdd2 = spark.createDataFrame(test).toDF("label", "c11", "c22")
   testdd2.join(testdd, Seq("label"), "left").show()
   testdd.show()
+  val testbins = Array(Double.NegativeInfinity, 2.0, 3.0, Double.PositiveInfinity)
+  val testbins2 = Array(Double.NegativeInfinity, 3.0, 4.0, Double.PositiveInfinity)
   /**
     * +-----+---+---+
     * |label| c1| c2|
@@ -28,9 +25,12 @@ object StaTestDFGroupyByKey extends App{
     * +-----+---+---+
     */
 
+    val binsMap = Map("c1" -> testbins, "c2"-> testbins2)
+
   val cola = Array("c1", "c2")
   val staDf = testdd.selectExpr("label", s"${Tools.getStackParams(cola:_*)} as (feature, value)")
   staDf.show()
+
   /**
     * +-----+-------+-----+
     * |label|feature|value|
@@ -43,6 +43,13 @@ object StaTestDFGroupyByKey extends App{
     * |    1|     c2|    3|
     * +-----+-------+-----+
     */
+  import spark.implicits._
+  import org.apache.spark.sql.functions._
+  val rettt = staDf.withColumn("bins", udf{f:String=>
+    binsMap.filter{case(key, _) => key.equals(f)}.map{case(_, v)=> v}.toSeq.flatten.toArray
+  }.apply(col("feature")))
+
+  rettt.show(10, truncate = 0)
 
   import spark.implicits._
   import org.apache.spark.sql.functions._
@@ -104,7 +111,7 @@ object StaTestDFGroupyByKey extends App{
 
 //  res.collect().foreach(println(_))
   val schema = StructType(Array(StructField("feature",StringType,true),StructField("bin",DataTypes.createArrayType(DoubleType),true)))
-  spark.createDataFrame(res, schema).show()
+  spark.createDataFrame(res, schema).show(10,truncate = 0)
 
 //  ds.groupByKey(x => x.feature).mapValues(v => )
 //  ds.map(line => (line.feature, line.value)).show()

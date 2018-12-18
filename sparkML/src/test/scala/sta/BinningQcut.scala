@@ -4,6 +4,8 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{callUDF, col, lit, udf}
 
 object BinningQcut extends App{
+
+
   def qcut(df: DataFrame, binsNum:Int = 10):DataFrame = {
     import df.sparkSession.implicits._
     val tempDf = df.groupBy("feature").agg(

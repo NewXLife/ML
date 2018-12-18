@@ -6,6 +6,9 @@ import org.apache.spark.sql.expressions.UserDefinedFunction
 import scala.util.Success
 
 object FeatureBinning3TestCut extends App {
+  /**
+    * 在數據量很小的時候，有些值落不到分相当中，这个时候，某些分箱就为空，这个时候， 就会漏掉分箱
+    */
     val spark = SparkSession.builder().appName("test").master("local[*]").getOrCreate()
   spark.sparkContext.setLogLevel("error")
     import org.apache.spark.sql.functions._
@@ -17,7 +20,7 @@ object FeatureBinning3TestCut extends App {
     spark.conf.set("spark.sql.inMemoryColumnarStorage.compressed", value = true)
 
   ///user/hive/warehouse/base
-  val test = loadCSVData("csv", "file:\\C:\\NewX\\newX\\bd-engine\\docs\\tongdun1.csv")
+  val test = loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base.csv")
   println(s"total:${test.count()}")
   test.printSchema()
 
@@ -38,14 +41,14 @@ object FeatureBinning3TestCut extends App {
     * }
     */
 
-  val labelCol = "7d"
+  val labelCol = "d14"
 //    val featureCols = test.columns.toBuffer
 //    val excludeCol = Array("1d", labelCol,"etl_time","dt")
 //    for( col <- excludeCol) featureCols.remove(featureCols.indexOf(col))
 
-
-  val testcol = Array("td_1month_platform_count","td_3month_platform_count")
-    val row2ColDf = test.withColumnRenamed(labelCol, "label").selectExpr("label", s"${Tools.getStackParams(testcol: _*)} as (feature, value)").coalesce(100).cache()
+val testcols = "day7,m1,m3,m6,m12,m18,m24,m60"
+//  val testcol = Array("td_1month_platform_count","td_3month_platform_count")
+    val row2ColDf = test.withColumnRenamed(labelCol, "label").selectExpr("label", s"${Tools.getStackParams(testcols.split(","): _*)} as (feature, value)").coalesce(100).cache()
 
 
     def getBinsArray(bins: Array[Double]): Array[(Double, Double)] = {
@@ -81,6 +84,8 @@ object FeatureBinning3TestCut extends App {
       val doubleArray = inputStr.split(",").map( x=> x.toDouble)
       cutObj.cut(doubleArray.min,doubleArray.max, 5)
     }}.apply(col("bins")))
+
+  binsArrayDF.show()
 
   //none.get
     val row2ColBinsArrayDF = row2ColDf.join(binsArrayDF, Seq("feature"), "left")
@@ -139,7 +144,6 @@ object FeatureBinning3TestCut extends App {
     )
 
 
-    println(s"start master index join binsarray time:${DateUtils.getNowDate}")
     val masterDf = row2ColBinsArrayDF.groupBy("feature").agg(
       count("value").as("totalSamples"),
       sum(when($"label" > 0, 1).otherwise(0)).as("totalOverdue"),
@@ -168,7 +172,7 @@ object FeatureBinning3TestCut extends App {
         |((overdueCount / totalOverdue) - (notOverdueCount / totalNotOverdue)) * log((overdueCount / totalOverdue) / (notOverdueCount / totalNotOverdue)) as iv
         |from bins left join master on bins.feature = master.feature
       """.stripMargin)
-  resDF.show()
+  resDF.orderBy("key_field_name","bin_inner_index").show(100)
 //    DSHandler.save2MysqlDb(resDF, "dataset_statistic_bins_continuous")
 
     val totalResDf = resDF.groupBy("key_field_name").agg(
@@ -183,7 +187,6 @@ object FeatureBinning3TestCut extends App {
       lit(0).as("woe"),
       sum("iv").as("iv")
     ).show()
-    println(s"final total index  end time:${DateUtils.getNowDate}")
 //    DSHandler.save2MysqlDb(totalResDf, "dataset_statistic_bins_continuous")
     "success"
 }
