@@ -4,7 +4,8 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{callUDF, col, lit, udf}
 
 object BinningQcut extends App{
-
+val testarray = Array(1.2,30.0, 4.5)
+  println(testarray.toString)
 
   def qcut(df: DataFrame, binsNum:Int = 10):DataFrame = {
     import df.sparkSession.implicits._

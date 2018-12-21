@@ -21,4 +21,11 @@ object StringBufferMaxMin extends App{
     case Success(_) => "Int" ;
     case _ =>  "NotInt"
   }
+
+  val tt = "5"
+  val res = tt match {
+    case "bin" => "bin"
+    case "bins" => "bins"
+  }
+  println("--------:", res)
 }
