@@ -22,6 +22,8 @@ object FeatureBinning3 extends App {
   println(s"start load data time:${DataUtils.getNowDate}")
   val test = loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\base2.csv")
   val staCols = test.columns.toBuffer
+  println("master dataframe----------")
+  test.show(100)
 
   /**
     * +-----+-------+-----+
@@ -46,7 +48,8 @@ object FeatureBinning3 extends App {
     Try(df.select(colsArray.map(f => col(f).cast(DoubleType)): _*))
   }
 
-  val staDf = String2Double(test, staCols.toArray).get
+  val  ttcol = "d14,m1,m3"
+  val staDf = String2Double(test, ttcol.split(",")).get
   println("------------stadf")
   staDf.show()
 
@@ -84,7 +87,7 @@ object FeatureBinning3 extends App {
   if(staCols.exists(name => labelName.contains(name)))staCols.remove(staCols.indexOf(labelName))
 
   val staCols0 = "day7,m1,m3,m6,m12,m18,m24,m60"
-  val staCols1 = "day7,m1,m3,m6"
+  val staCols1 = "m1,m3"
   val staCols2 = ",m12,m18,m24,m60"
   val row2ColDf = staDf.withColumnRenamed("d14", "label").selectExpr("label", s"${getStackParams(staCols1.split(","): _*)} as (feature, value)")
 

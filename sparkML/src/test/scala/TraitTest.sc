@@ -215,3 +215,7 @@ class SayU(us :String) extends SayHello{
 
 val ssss = new SayU("hello")
 ssss.name
+
+val testSeq = Seq(Array(0.0, 0.15, 0.5))
+val retest = testSeq.flatten
+println(retest)
