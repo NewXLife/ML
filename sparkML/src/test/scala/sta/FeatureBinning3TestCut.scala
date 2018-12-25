@@ -20,7 +20,7 @@ object FeatureBinning3TestCut extends App {
     spark.conf.set("spark.sql.inMemoryColumnarStorage.compressed", value = true)
 
   ///user/hive/warehouse/base
-  val test = loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base.csv")
+  val test = loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\base.csv")
   println(s"total:${test.count()}")
   test.printSchema()
 
@@ -46,7 +46,7 @@ object FeatureBinning3TestCut extends App {
 //    val excludeCol = Array("1d", labelCol,"etl_time","dt")
 //    for( col <- excludeCol) featureCols.remove(featureCols.indexOf(col))
 
-val testcols = "day7,m1,m3,m6,m12,m18,m24,m60"
+val testcols = "day7,m1,m3,m6,m12,m18,m24,m60,test"
 //  val testcol = Array("td_1month_platform_count","td_3month_platform_count")
     val row2ColDf = test.withColumnRenamed(labelCol, "label").selectExpr("label", s"${Tools.getStackParams(testcols.split(","): _*)} as (feature, value)").coalesce(100).cache()
 

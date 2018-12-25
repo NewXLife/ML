@@ -629,6 +629,7 @@ object DecisionTreeClassiferTest extends App {
   )
 
   val spark = SparkSession.builder().master("local[*]").appName("test").getOrCreate()
+  spark.sparkContext.setLogLevel("error")
 
   import spark.implicits._
   import spark.sql
@@ -642,22 +643,24 @@ object DecisionTreeClassiferTest extends App {
   val childrenWhere = "case when children='no' then 0 else cast(1 as double) end as children"
 
   val dataLabelDf = sql(s"select $labelWhere, $genderWhere,age,yearsmarried,$childrenWhere,religiousness,education,occupation,rating from data")
+  println("dataLabelDf#################")
+  dataLabelDf.show()
 
   //  dataLabelDf.show(10)
   //create featuresArray
 
   //字段转为特征向量
   val featuresArray = Array("gender", "age", "yearsmarried", "children", "religiousness", "education", "occupation", "rating")
-
   val assembler = new VectorAssembler().setInputCols(featuresArray).setOutputCol("features")
   val vecDf = assembler.transform(dataLabelDf)
-
+  println("vecDf########################")
   vecDf.show(10, truncate = false)
 
 
   //索引标签，将元数据添加到标签中
   val labelIndexer = new StringIndexer().setInputCol("label").setOutputCol("indexedLabel").fit(vecDf)
-  labelIndexer.transform(vecDf)
+  println("labelIndexer######################")
+  labelIndexer.transform(vecDf).show(10, truncate = 0)
 
   //对特征进行索引
   //setMaxCategories:
@@ -671,12 +674,13 @@ object DecisionTreeClassiferTest extends App {
   // 训练决策树模型
   val dt = new DecisionTreeClassifier().setLabelCol("indexedLabel")
     .setFeaturesCol("indexedFeatures")
-    .setImpurity("entropy") //
-    .setMaxBins(100) //离散化"连续特征"的最大划分数
-    .setMaxDepth(5) //树的最大深度
+//    .setImpurity("entropy") //
+    .setImpurity("gini") //
+//    .setMaxBins(100) //离散化"连续特征"的最大划分数
+    .setMaxDepth(4) //树的最大深度
     .setMinInfoGain(0.01) //一个节点分裂的最小信息增益，值为[0,1]
-    .setMinInstancesPerNode(10) //每个节点包含的最小样本数
-    .setSeed(123456)
+//    .setMinInstancesPerNode(10) //每个节点包含的最小样本数
+    .setSeed(7)
 
   // 将索引标签转换回原始标签
   val labelConverter = new IndexToString().setInputCol("prediction").setOutputCol("predictedLabel").setLabels(labelIndexer.labels)
@@ -687,6 +691,8 @@ object DecisionTreeClassiferTest extends App {
   val model = pipeLine.fit(trainData)
 
   val predictions = model.transform(testData)
+  println("predictions############")
+  predictions.show(10, truncate = 0)
 
   //
   val evaluator = new MulticlassClassificationEvaluator().setLabelCol("indexedLabel").setPredictionCol("prediction").setMetricName("accuracy")
