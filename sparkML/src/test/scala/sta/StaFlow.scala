@@ -20,7 +20,7 @@ object StaFlow {
   }
 
   def row2ColDf(test: DataFrame, featureCols: Array[String], labelCol: String = "label"): DataFrame = {
-    test.withColumnRenamed(labelCol, "label").selectExpr("label", s"${Tools.getStackParams(featureCols: _*)} as (feature, value)").coalesce(100).cache()
+    test.withColumnRenamed(labelCol, "label").selectExpr("label", s"${Tools.getStackParams(featureCols: _*)} as (key_field_name, value)").coalesce(100).cache()
   }
 
   def initRunningCfg(spark: SparkSession) = {
@@ -34,7 +34,7 @@ object StaFlow {
 
   def row2ColDFAggValue(row2ColDf: DataFrame, method: String = "collect_list"): DataFrame = {
     import row2ColDf.sparkSession.implicits._
-    row2ColDf.groupBy("feature").agg(
+    row2ColDf.groupBy("key_field_name").agg(
       //method collect_list / collect_set
       callUDF("concat_ws", lit(","), callUDF(method, $"value")).as("tValue")
     )
@@ -73,7 +73,7 @@ object StaFlow {
 
   def binsIndexExcludeMinMaxDF(binsDF: DataFrame): DataFrame = {
     import binsDF.sparkSession.implicits._
-    binsDF.groupBy("feature", "bin").agg(
+    binsDF.groupBy("key_field_name", "bin").agg(
       count("value").as("binSamples"),
       sum(when($"label" > 0, 1).otherwise(0)).as("overdueCount"),
       sum(when($"label" === 0, 1).otherwise(0)).as("notOverdueCount"),
@@ -83,7 +83,7 @@ object StaFlow {
 
   def binsIndexDF(binsDF: DataFrame): DataFrame = {
     import binsDF.sparkSession.implicits._
-    binsDF.groupBy("feature", "bin").agg(
+    binsDF.groupBy("key_field_name", "bin").agg(
       count("value").as("binSamples"),
       min("value").as("min"),
       max("value").as("max"),
@@ -95,7 +95,7 @@ object StaFlow {
 
   def totalIndexDF(row2ColBinsArrayDF: DataFrame): DataFrame = {
     import row2ColBinsArrayDF.sparkSession.implicits._
-    row2ColBinsArrayDF.groupBy("feature").agg(
+    row2ColBinsArrayDF.groupBy("key_field_name").agg(
       count("value").as("totalSamples"),
       sum(when($"label" > 0, 1).otherwise(0)).as("totalOverdue"),
       sum(when($"label" === 0, 1).otherwise(0)).as("totalNotOverdue"),
@@ -109,7 +109,7 @@ object StaFlow {
     spark.sql(
       """
         |select
-        |bins.feature as key_field_name,
+        |bins.key_field_name as key_field_name,
         |bin,
         |binSamples as bins_sample_count,
         |(binSamples / totalSamples) as bins_sample_ratio,
@@ -118,7 +118,7 @@ object StaFlow {
         |(overdueCountPercent / totalOverduePercent) as lift,
         |log((overdueCount / totalOverdue) / (notOverdueCount / totalNotOverdue)) as woe,
         |((overdueCount / totalOverdue) - (notOverdueCount / totalNotOverdue)) * log((overdueCount / totalOverdue) / (notOverdueCount / totalNotOverdue)) as iv
-        |from bins left join master on bins.feature = master.feature
+        |from bins left join master on bins.key_field_name = master.key_field_name
       """.stripMargin)
   }
 
@@ -129,7 +129,7 @@ object StaFlow {
     spark.sql(
       """
         |select
-        |bins.feature as key_field_name,
+        |bins.key_field_name as key_field_name,
         |bin,
         |min as min_value,
         |max as max_value,

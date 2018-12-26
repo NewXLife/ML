@@ -50,7 +50,6 @@ object StaTestDFGroupyByKey extends App{
   }.apply(col("feature")))
 
   rettt.show(10, truncate = 0)
-
   import spark.implicits._
   import org.apache.spark.sql.functions._
 //  staDf.select("feature", "value").groupByKey(x=> {
