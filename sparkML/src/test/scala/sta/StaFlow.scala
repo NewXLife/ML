@@ -173,4 +173,10 @@ object StaFlow {
       sum("iv").as("iv")
     )
   }
-}
+
+  def useBinsTemplate(df: DataFrame, binsArray: Map[String, Array[Double]], newCol:String = "bins", applyCol:String = "feature") = {
+    df.withColumn(newCol, udf { f: String =>
+      binsArray.filter { case (key, _) => key.equals(f) }.map { case (_, v) => v }.toSeq.flatten.toArray
+    }.apply(col(applyCol)))
+  }
+  }
