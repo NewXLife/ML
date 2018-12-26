@@ -1,6 +1,6 @@
 package sta
 
-import com.niuniuzcd.demo.util.DataUtils
+import com.niuniuzcd.demo.util.DateUtils
 import org.apache.spark.ml.feature.QuantileDiscretizer
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.types._
@@ -19,7 +19,7 @@ object FeatureBinning3 extends App {
   import spark.implicits._
 
   ///user/hive/warehouse/base
-  println(s"start load data time:${DataUtils.getNowDate}")
+  println(s"start load data time:${DateUtils.getNowDate}")
   val test = loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\base2.csv")
   val staCols = test.columns.toBuffer
   println("master dataframe----------")
@@ -244,7 +244,7 @@ object FeatureBinning3 extends App {
     }
   }
 
-  println(s"start master index join binsarray time:${DataUtils.getNowDate}")
+  println(s"start master index join binsarray time:${DateUtils.getNowDate}")
   val masterDf = row2ColBinsArrayDF.groupBy("feature").agg(
     count("value").as("totalSamples"),
     sum(when($"label" > 0, 1).otherwise(0)).as("totalOverdue"),
@@ -289,7 +289,7 @@ object FeatureBinning3 extends App {
     lit(0).as("WOE"),
     sum("IV").as("IV")
   ).show()
-  println(s"final total index  end time:${DataUtils.getNowDate}")
+  println(s"final total index  end time:${DateUtils.getNowDate}")
 
 //  DSHandler.save2MysqlDb(totalResDf, "bins_index")
   spark.stop()

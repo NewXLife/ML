@@ -5,7 +5,7 @@ import org.apache.spark.sql.types.{DoubleType, IntegerType, StructField, StructT
 import org.apache.spark.sql.{Row, RowFactory, SparkSession}
 import java.util
 
-import com.niuniuzcd.demo.util.DataUtils
+import com.niuniuzcd.demo.util.DateUtils
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -22,9 +22,9 @@ object FeatureBinning extends App {
   import spark.implicits._
 
   ///user/hive/warehouse/base
-  println(s"start load data time:${DataUtils.getNowDate}")
+  println(s"start load data time:${DateUtils.getNowDate}")
   val test = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base.csv")
-  println(s"end load time:${DataUtils.getNowDate}")
+  println(s"end load time:${DateUtils.getNowDate}")
 
   def loadCSVData(csv: String, filePath: String, hasHeader: Boolean = true) = {
     if (hasHeader) spark.read.format(csv).option("header", "true").load(filePath)
@@ -38,7 +38,7 @@ object FeatureBinning extends App {
   val testDf = test.selectExpr(cols.split(","): _*).coalesce(5).cache()
 
 
-  println(s"start time:${DataUtils.getNowDate}")
+  println(s"start time:${DateUtils.getNowDate}")
   val res = testDf.rdd.flatMap(row => {
     var rows = ArrayBuffer[(String, String)]()
     for (fieldName <- row.schema.fieldNames) {
@@ -70,7 +70,7 @@ object FeatureBinning extends App {
       }
       res
     }).collect()
-  println(s"end time:${DataUtils.getNowDate}")
+  println(s"end time:${DateUtils.getNowDate}")
 
   var temp = ""
   for (item <- res) {

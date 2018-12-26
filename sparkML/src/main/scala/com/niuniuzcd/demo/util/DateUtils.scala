@@ -6,7 +6,7 @@ import java.util.{Calendar, Date}
 /**
   * create by colin on 2018/7/16
   */
-object DataUtils extends App {
+class DateUtils{
   lazy val cal: Calendar = Calendar.getInstance()
 
 

@@ -1,6 +1,6 @@
 package sta
 
-import com.niuniuzcd.demo.util.{DSHandler, DataUtils}
+import com.niuniuzcd.demo.util.{DSHandler, DateUtils}
 import org.apache.spark.ml.feature.QuantileDiscretizer
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{DoubleType, StringType}
@@ -217,7 +217,7 @@ val test = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\tongdun1.csv"
 //  binsArrayDF.show(20, truncate = 0 )
 
 
-  println(s"start row2coldf join binsarray time:${DataUtils.getNowDate}")
+  println(s"start row2coldf join binsarray time:${DateUtils.getNowDate}")
   val row2ColBinsArrayDF = row2ColDf.join(binsArrayDF, Seq("feature"), "left")
 //  println(s"end row2coldf join binsarray time:${DataUtils.getNowDate}")
 
@@ -289,7 +289,7 @@ val test = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\tongdun1.csv"
   masterDf.createOrReplaceTempView("master")
   binsResDF.createOrReplaceTempView("bins")
 
-  println(s"final join index start time:${DataUtils.getNowDate}")
+  println(s"final join index start time:${DateUtils.getNowDate}")
   val resDF = spark.sql(
     """
       |select
@@ -317,9 +317,9 @@ val test = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\tongdun1.csv"
   //持久化,如csv->hdfs
   //res2.coalesce(10).write.format("csv").save("")
 
-  println(s"final join index  end time:${DataUtils.getNowDate}")
+  println(s"final join index  end time:${DateUtils.getNowDate}")
 
-  println(s"final total index  start time:${DataUtils.getNowDate}")
+  println(s"final total index  start time:${DateUtils.getNowDate}")
   val res2 = resDF.groupBy("feature").agg(
     lit("TOTAL").as("bin"),
     max("totalSamples").as("binSamples"),
@@ -335,7 +335,7 @@ val test = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\tongdun1.csv"
   //res2.coalesce(10).write.format("csv").save("")
 
 
-  println(s"final total index  end time:${DataUtils.getNowDate}")
+  println(s"final total index  end time:${DateUtils.getNowDate}")
 
   spark.stop()
 }

@@ -5,6 +5,10 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object StaFlow {
+  def timeInteral2Array(startTime: String, endTime: String, timeIntenal:Int) = {
+    
+  }
+
 
   val spark = SparkSession.builder().appName("test-binning").master("local[*]").getOrCreate()
   spark.conf.set("spark.sql.inMemoryColumnarStorage.batchSize", 10000)
@@ -19,9 +23,14 @@ object StaFlow {
     else spark.read.format(csv).load(filePath)
   }
 
-  def row2ColDf(test: DataFrame, featureCols: Array[String], labelCol: String = "label"): DataFrame = {
-    test.withColumnRenamed(labelCol, "label").selectExpr("label", s"${Tools.getStackParams(featureCols: _*)} as (key_field_name, value)").coalesce(100).cache()
+  def row2ColDfContainsTimeCol(test: DataFrame, featureCols: Array[String], labelCol: String = "label", timeCol:String): DataFrame = {
+      test.withColumnRenamed(labelCol, "label").selectExpr("label",timeCol, s"${Tools.getStackParams(featureCols: _*)} as (key_field_name, value)").coalesce(100).cache()
   }
+
+  def row2ColDf(test: DataFrame, featureCols: Array[String], labelCol: String = "label"): DataFrame = {
+      test.withColumnRenamed(labelCol, "label").selectExpr("label", s"${Tools.getStackParams(featureCols: _*)} as (key_field_name, value)").coalesce(100).cache()
+  }
+
 
   def initRunningCfg(spark: SparkSession) = {
     spark.conf.set("spark.sql.inMemoryColumnarStorage.batchSize", 10000)
@@ -63,6 +72,16 @@ object StaFlow {
       "(" + "missing-value" + ")"
     }
   }
+
+  def categoriesDefinedBin: UserDefinedFunction = udf { (value: String, bins: Seq[String]) =>
+    if(value!= null && value.toLowerCase != "null"){
+    val res =   for(bin <- bins.toArray if bin.contains(value)) yield bin
+      res.mkString(",")
+    }
+    else
+      "others"
+  }
+
 
   def categoriesBin: UserDefinedFunction = udf { (value: String, bins: String, binsCount:Int) =>
    if(binsCount <= 3 && value!= null && value.toLowerCase != "null" && bins.contains(value))
@@ -174,9 +193,15 @@ object StaFlow {
     )
   }
 
-  def useBinsTemplate(df: DataFrame, binsArray: Map[String, Array[Double]], newCol:String = "bins", applyCol:String = "feature") = {
+  def useBinsContinueTemplate(df: DataFrame, binsArray: Map[String, Array[Double]], newCol:String = "bins", applyCol:String = "feature"): DataFrame = {
     df.withColumn(newCol, udf { f: String =>
       binsArray.filter { case (key, _) => key.equals(f) }.map { case (_, v) => v }.toSeq.flatten.toArray
+    }.apply(col(applyCol)))
+  }
+
+  def useBinsCategoriesTemplate(df: DataFrame, binsMap: Map[String, String], newCol:String = "bins", applyCol:String = "key_field_name"): DataFrame = {
+    df.withColumn(newCol, udf { f: String =>
+      binsMap.filter { case (key, _) => key.equals(f) }.map { case (_, v) => v.split(",") }.toSeq.flatten.toArray
     }.apply(col(applyCol)))
   }
   }

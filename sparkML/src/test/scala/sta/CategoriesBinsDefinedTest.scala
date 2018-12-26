@@ -22,17 +22,29 @@ object CategoriesBinsDefinedTest extends App{
   //d14,day7,m1,m3,m6,m12,m18,m24,m60
   val featureCols = "day7,m1,m3,m6,m12,m18,m24,m60".split(",")
   val labelCol = "d14"
-  val row2ColsDf = StaFlow.row2ColDf(test, featureCols, labelCol)
+  val cMap = Map("m60" ->"(小学),(初中),(大学;博士)")
+  val row2ColsDf = StaFlow.row2ColDf(test.select(labelCol,cMap.keySet.toArray:_*), cMap.keySet.toArray, labelCol)
   row2ColsDf.show()
 
 
 
-  val staBinsDf = binsDf.withColumnRenamed("tValue", "bins")
+  val staBinsDf = StaFlow.useBinsCategoriesTemplate(row2ColsDf, cMap).withColumn("binCount", udf{ x: Seq[String]=> {
+    x.size
+  }}.apply(col("bins")))
+  staBinsDf.show()
+  /**
+    * +-----+--------------+-----+-------------------+
+    * |label|key_field_name|value|               bins|
+    * +-----+--------------+-----+-------------------+
+    * |    0|           m60|   大学|[(小学),(初中),(大学,博士)]|
+    * |    0|           m60|   大学|[(小学),(初中),(大学,博士)]|
+    * |    0|           m60|   初中|[(小学),(初中),(大学,博士)]|
+    * |    0|           m60|   初中|[(小学),(初中),(大学,博士)]|
+    */
 
-  val joinDF = row2ColsDf.join(staBinsDf, Seq("key_field_name"), "left")
-  joinDF.show()
-
-  val staDf = joinDF.withColumn("bin", StaFlow.categoriesBin($"value", $"bins", $"binCount"))
+  val staDf = staBinsDf.withColumn("bin", StaFlow.categoriesDefinedBin($"value", $"bins"))
+  println("staDf###############")
+  staDf.show(10, truncate = 0)
 
   val binsDF = StaFlow.binsIndexExcludeMinMaxDF(staDf)
   println("binsDF#####")
