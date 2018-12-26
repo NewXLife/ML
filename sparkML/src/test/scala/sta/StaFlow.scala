@@ -1,12 +1,22 @@
 package sta
 
+import com.niuniuzcd.demo.util.DateUtils
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
+
 object StaFlow {
-  def timeInteral2Array(startTime: String, endTime: String, timeIntenal:Int) = {
-    
+  def timeInteral2Array(startTime: String, endTime: String, timeIntenal:Int): Array[String] = {
+    val dateObj = new DateUtils()
+    val startTime2 = dateObj.timeFormat2(startTime)
+    val endTime2 = dateObj.timeFormat2(endTime)
+    dateObj.getTimeRangeArray(startTime2, endTime2, timeIntenal).toArray
+  }
+
+  def timeFormat(startTime: Any) = {
+    val dateObj = new DateUtils()
+    dateObj.timeFormat(startTime)
   }
 
 
@@ -64,6 +74,12 @@ object StaFlow {
     temp
   }
 
+  def searchIndex2Str(v2: String, array: Array[String]): Int = {
+    var temp = 0
+    for (i <- array.indices) if (v2 > array(i)) temp += 1 else temp
+    temp
+  }
+
   def splitBinning: UserDefinedFunction = udf { (value: String, binsArray: Seq[Double]) =>
     if (value != null && !value.equals("null") && !value.equals("NULL")) {
       val index = searchIndex2(value.toDouble, binsArray.toArray)
@@ -72,6 +88,16 @@ object StaFlow {
       "(" + "missing-value" + ")"
     }
   }
+
+  def splitBinningString: UserDefinedFunction = udf { (value: String, binsArray: Seq[String]) =>
+    if (value != null && !value.equals("null") && !value.equals("NULL")) {
+      val index = searchIndex2Str(value, binsArray.toArray)
+      "(" + binsArray(index - 1) + "," + binsArray(index) + ")"
+    } else {
+      "(" + "missing-value" + ")"
+    }
+  }
+
 
   def categoriesDefinedBin: UserDefinedFunction = udf { (value: String, bins: Seq[String]) =>
     if(value!= null && value.toLowerCase != "null"){
