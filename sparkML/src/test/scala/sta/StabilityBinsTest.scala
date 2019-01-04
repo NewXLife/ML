@@ -1,6 +1,6 @@
 package sta
 
-import com.niuniuzcd.demo.util.DateUtils
+import com.niuniuzcd.demo.util.DSHandler
 
 object StabilityBinsTest extends App {
   val spark = StaFlow.spark
@@ -8,8 +8,8 @@ object StabilityBinsTest extends App {
   import org.apache.spark.sql.functions._
   import spark.implicits._
 
-  //  val test = StaFlow.loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv")
-  val test = StaFlow.loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base3.csv").orderBy("ad")
+    val test = StaFlow.loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\td_statistic_feature_xk.csv")
+//  val test = StaFlow.loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base3.csv").orderBy("ad")
   println(s"total:${test.count()}")
   /**
     * +---+----+----+----+----+----+----+----+---+---+---------+
@@ -21,23 +21,27 @@ object StabilityBinsTest extends App {
     */
   test.show(10)
 
-  val staDf = test.withColumn("ad", udf{x:Any => {
+  val staDf = test.withColumn("apply_risk_created_at", udf{x:Any => {
     StaFlow.timeFormat(x)
-  }}.apply(col("ad")))
+  }}.apply(col("apply_risk_created_at")))
 
   //  d14,day7,m1,m3,m6,m12,m18,m24,m60
-  val featureCols = "day7,m1,m3,m6,m12,m18,m24,m60".split(",")
-  val labelCol = "d14"
 
-  val colMap = Map("day7" -> "(1,2]",
-    "m1" -> "(2,3]",
-    "m3" -> "(2,3]",
-    "m6" -> "(2,3]",
-    "m12" -> "(2,3]",
-    "m18" -> "(2,3]",
-    "m24" -> "(2,3]",
-    "m60" -> "(2,3]"
-  )
+  val labelCol = "overdue_days"
+
+//  val colMap = Map("td_7day_platform_count_for_model" -> "(1,2],(2,3]",
+//    "td_3month_platform_count_model" -> "(2,3],(3,4]"
+//  )
+//
+//  val colMap2 = Map("td_7day_platform_count_for_model" -> Array("(1,2]", "(2,3]"),
+//    "td_3month_platform_count_model" -> Array("(2,3]", "(3,4]")
+//  )
+
+  import scala.collection.JavaConversions._
+  val finalMap = Map2Json.getJavaMap.mapValues(strV => strV.map(x => x).toArray).toMap
+  val featureCols = finalMap.keySet.toArray
+
+  //binsObj.getBinsTemplate.mapValues(strV => strV.split(",").map(x=> x.toDouble)).toMap
 
   val startTime = "2018/6/19"
   val endTime = "2018/6/26"
@@ -46,99 +50,71 @@ object StabilityBinsTest extends App {
   val timeArray = StaFlow.timeInteral2Array(startTime, endTime, timeInterval)
   println(timeArray.mkString(","))
 
-  val timeMap = colMap.keySet.toArray.map(x => (x, timeArray))
-  println(timeMap.mkString(","))
 
 
+  val resbinsArrar =  StaFlow.getBinsArray(timeArray)
+  println(resbinsArrar.mkString(","))
 
-  val row2ColsDf = StaFlow.row2ColDfContainsTimeCol(staDf, featureCols, labelCol, timeCol = "ad")
-   val res1 = row2ColsDf.withColumn("timeArray", lit(timeArray))
+//  val timeMap = colMap.keySet.toArray.map(x => (x, timeArray))
+//  println(timeMap.mkString(","))
+
+
+  val row2ColsDf = StaFlow.row2ColDfContainsTimeCol(staDf, featureCols, labelCol, timeCol = "apply_risk_created_at")
+   val res1 = row2ColsDf.withColumn("sta_time_range", lit(StaFlow.filterSpecialChar(resbinsArrar.mkString(";"))))
   res1.show(10, truncate = 0)
+  res1.printSchema()
+
   /**
-    * +-----+----------+--------------+-----+------------------------------------------------------------+
-    * |label|ad        |key_field_name|value|timeArray                                                   |
-    * +-----+----------+--------------+-----+------------------------------------------------------------+
-    * |0    |2018-06-19|day7          |-1.0 |[2018-06-19, 2018-06-21, 2018-06-23, 2018-06-25, 2018-06-26]|
-    * |0    |2018-06-19|m1            |16.0 |[2018-06-19, 2018-06-21, 2018-06-23, 2018-06-25, 2018-06-26]|
-    * |0    |2018-06-19|m3            |33.0 |[2018-06-19, 2018-06-21, 2018-06-23, 2018-06-25, 2018-06-26]|
-    * |0    |2018-06-19|m6            |33.0 |[2018-06-19, 2018-06-21, 2018-06-23, 2018-06-25, 2018-06-26]|
-    * |0    |2018-06-19|m12           |33.0 |[2018-06-19, 2018-06-21, 2018-06-23, 2018-06-25, 2018-06-26]|
-    * |0    |2018-06-19|m18           |33.0 |[2018-06-19, 2018-06-21, 2018-06-23, 2018-06-25, 2018-06-26]|
-    * |0    |2018-06-19|m24           |null |[2018-06-19, 2018-06-21, 2018-06-23, 2018-06-25, 2018-06-26]|
-    * |0    |2018-06-19|m60           |博士   |[2018-06-19, 2018-06-21, 2018-06-23, 2018-06-25, 2018-06-26]|
-    * |1    |2018-06-20|day7          |-1.0 |[2018-06-19, 2018-06-21, 2018-06-23, 2018-06-25, 2018-06-26]|
-    * |1    |2018-06-20|m1            |16.0 |[2018-06-19, 2018-06-21, 2018-06-23, 2018-06-25, 2018-06-26]|
-    * +-----+----------+--------------+-----+------------------------------------------------------------+
+    * +-----+----------+--------------+-----+---------------------------------------------------------------------------------------+
+    * |label|ad        |key_field_name|value|timeArray                                                                              |
+    * +-----+----------+--------------+-----+---------------------------------------------------------------------------------------+
+    * |0    |2018-06-19|day7          |-1.0 |2018-06-19,2018-06-21;2018-06-21,2018-06-23;2018-06-23,2018-06-25;2018-06-25,2018-06-26|
+    * |0    |2018-06-19|m1            |2.0  |2018-06-19,2018-06-21;2018-06-21,2018-06-23;2018-06-23,2018-06-25;2018-06-25,2018-06-26|
+    * |0    |2018-06-19|m3            |6.0  |2018-06-19,2018-06-21;2018-06-21,2018-06-23;2018-06-23,2018-06-25;2018-06-25,2018-06-26|
+    * |0    |2018-06-19|m6            |13.0 |2018-06-19,2018-06-21;2018-06-21,2018-06-23;2018-06-23,2018-06-25;2018-06-25,2018-06-26|
+    * |0    |2018-06-19|m12           |42.0 |2018-06-19,2018-06-21;2018-06-21,2018-06-23;2018-06-23,2018-06-25;2018-06-25,2018-06-26|
+    * |0    |2018-06-19|m18           |48.0 |2018-06-19,2018-06-21;2018-06-21,2018-06-23;2018-06-23,2018-06-25;2018-06-25,2018-06-26|
+    * |0    |2018-06-19|m24           |54.0 |2018-06-19,2018-06-21;2018-06-21,2018-06-23;2018-06-23,2018-06-25;2018-06-25,2018-06-26|
+    * |0    |2018-06-19|m60           |大学   |2018-06-19,2018-06-21;2018-06-21,2018-06-23;2018-06-23,2018-06-25;2018-06-25,2018-06-26|
+    * |0    |2018-06-20|day7          |-1.0 |2018-06-19,2018-06-21;2018-06-21,2018-06-23;2018-06-23,2018-06-25;2018-06-25,2018-06-26|
+    * |0    |2018-06-20|m1            |2.0  |2018-06-19,2018-06-21;2018-06-21,2018-06-23;2018-06-23,2018-06-25;2018-06-25,2018-06-26|
+    * +-----+----------+--------------+-----+---------------------------------------------------------------------------------------+
     */
   //  StaFlow.splitBinningString
 
-  res1.withColumn("timeRange", StaFlow.splitBinningString($"ad", $"timeArray")).show()
+  val res2= res1.withColumn("sta_time_range", StaFlow.splitBinningString($"apply_risk_created_at", $"sta_time_range"))
 
-  //
-  //  val disCount = 3
-  //  val aggDf = StaFlow.row2ColDFAggValue(row2ColsDf, method ="collect_set")
-  //  aggDf.show()
-  //  val binsDf = aggDf.withColumn("binCount",udf{tv:String =>{
-  //    val disCount = tv.split(",").length
-  //    disCount
-  //  }}.apply(col("tValue")))
-  //  binsDf.show()
-  //  /**
-  //    * +-------+-------------------+---------+
-  //    * |feature|             tValue|binCount|
-  //    * +-------+-------------------+---------+
-  //    * |    m18|33.0,68.0,48.0,73.0|        4|
-  //    * |    m12|67.0,66.0,42.0,33.0|        4|
-  //    * |     m3| 25.0,12.0,6.0,33.0|        4|
-  //    * |    m60|小学,博士,大学,初中|        4|
-  //    * |     m6|36.0,33.0,13.0,21.0|        4|
-  //    * |     m1|  5.0,10.0,16.0,2.0|        4|
-  //    * |   day7|       3.0,-1.0,4.0|        3|
-  //    * |    m24|     68.0,54.0,80.0|        3|
-  //    * +-------+-------------------+---------+
-  //    */
-  //
-  //  val staBinsDf = binsDf.withColumnRenamed("tValue", "bins")
-  //
-  //  val joinDF = row2ColsDf.join(staBinsDf, Seq("key_field_name"), "left")
-  //  joinDF.show()
-  //
-  //  val staDf = joinDF.withColumn("bin", StaFlow.categoriesBin($"value", $"bins", $"binCount"))
-  //
-  //  val binsDF = StaFlow.binsIndexExcludeMinMaxDF(staDf)
-  //  println("binsDF#####")
-  //  /**
-  //    * +-------+------+----------+------------+---------------+-------------------+
-  //    * |key_field_name|   bin|binSamples|overdueCount|notOverdueCount|overdueCountPercent|
-  //    * +-------+------+----------+------------+---------------+-------------------+
-  //    * |    m60|    大学|         5|           3|              2|                0.6|
-  //    * |   day7|   4.0|         3|           0|              3|                0.0|
-  //    * |    m24|  80.0|         3|           0|              3|                0.0|
-  //    */
-  //  binsDF.show()
-  //  val masterDF  = StaFlow.totalIndexDF(row2ColsDf)
-  //  println("masterdf#######")
-  //  masterDF.show()
-  //  /**
-  //    * +-------+------------+------------+---------------+-------------------+
-  //    * |key_field_name|totalSamples|totalOverdue|totalNotOverdue|totalOverduePercent|
-  //    * +-------+------------+------------+---------------+-------------------+
-  //    * |    m18|          13|           3|             10|                0.3|
-  //    * |     m3|          13|           3|             10|                0.3|
-  //    */
-  //
-  //  val binsIndex = StaFlow.binsExcludeMinMaxIndex(binsDF, masterDF)
-  //  binsIndex.show()
-  //  /**
-  //    * +--------------+------+-----------------+-------------------+-------------+-------------------+------------------+------------------+------------------+
-  //    * |key_field_name|   bin|bins_sample_count|  bins_sample_ratio|overdue_count|overdue_count_ratio|              lift|               woe|                iv|
-  //    * +--------------+------+-----------------+-------------------+-------------+-------------------+------------------+------------------+------------------+
-  //    * |           m60|    大学|                5|0.38461538461538464|            3|                0.6|               2.0|1.6094379124341003|1.2875503299472804|
-  //    * |          day7|   4.0|                3|0.23076923076923078|            0|                0.0|               0.0|              null|              null|
-  //    * |           m24|  80.0|                3| 0.3333333333333333|            0|                0.0|               0.0|              null|              null|
-  //    */
-  //
-  //  val totalIndex = StaFlow.totalCategoriesIndex(binsIndex)
-  //  totalIndex.join(staBinsDf.select("key_field_name","bins","binCount"), Seq("key_field_name"), "left").show()
+   val res3 = StaFlow.useBinsDefinedBinsTemplate(res2, finalMap)
+  res3.show(10, truncate = 0)
+  res3.printSchema()
+  /**
+    * +-----+----------+--------------+-----+-----------------------+----------------+
+    * |label|ad        |key_field_name|value|timeRange              |bins            |
+    * +-----+----------+--------------+-----+-----------------------+----------------+
+    * |0    |2018-06-19|day7          |-1.0 |(2018-06-19,2018-06-21)|[(1, 2], (2, 3]]|
+    * |0    |2018-06-19|m1            |2.0  |(2018-06-19,2018-06-21)|[(2, 3], (3, 4]]|
+    * |0    |2018-06-19|m3            |6.0  |(2018-06-19,2018-06-21)|[(2, 3]]        |
+    * |0    |2018-06-20|day7          |-1.0 |(2018-06-19,2018-06-21)|[(1, 2], (2, 3]]|
+    */
 
+    val res4 = res3.withColumn("bin", StaFlow.splitStabilitySubBinBinning($"value", $"bins")) //null
+  /**
+    * +-----+----------+--------------+-----+-----------------------+--------------+---------------+
+    * |label|ad        |key_field_name|value|timeRange              |bins          |bin            |
+    * +-----+----------+--------------+-----+-----------------------+--------------+---------------+
+    * |0    |2018-06-19|day7          |-1.0 |(2018-06-19,2018-06-21)|[(1,2], (2,3]]|(missing-value)|
+    * |0    |2018-06-19|m1            |2.0  |(2018-06-19,2018-06-21)|[(2,3], (3,4]]|(missing-value)|
+    * |0    |2018-06-19|m3            |6.0  |(2018-06-19,2018-06-21)|[(2,3]]       |(missing-value)|
+    */
+    val binsDF = StaFlow.binsIndexTimeRange(res4)
+  println("bins dataframe")
+  binsDF.show(100, truncate = 0)
+
+  val masterDF = StaFlow.totalIndexTimeRangeDF(res4)
+  println("master dataframe")
+  masterDF.show(100, truncate = 0)
+
+    val binsIndex = StaFlow.binsExcludeMinMaxTimeRangeIndex(binsDF, masterDF)
+    binsIndex.show(100, truncate = 0)
+//  DSHandler.save2MysqlDb(binsIndex.withColumn("statistic_id", lit(100)).withColumn("statistic_uuid", lit("abc")).withColumnRenamed("bins","bin"), "dataset_statistic_bins_stability")
 }

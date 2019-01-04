@@ -15,10 +15,11 @@ object Tools {
   }
 
   def filterSpecialChar(str:String): String = {
-//    val pattern = "[`~!@#$%^&*()+=|{}':;'\\[\\]<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。、？]".r
+    //    val pattern = "[`~!@#$%^&*()+=|{}':;'\\[\\]<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。、？]".r
     val pattern = "[`~!@#$%^&*()+=|{}':'\\<>/?~！@#￥%……&*（）——+|{}【】‘；：\"”“’。、？]".r
     pattern replaceAllIn(str, "")
   }
+
 
 
   def getStackParams(s1: String, s2: String*): String = {

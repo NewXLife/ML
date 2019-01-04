@@ -6,7 +6,7 @@ object CategoriesBinsDefinedTest extends App{
   import org.apache.spark.sql.functions._
   import spark.implicits._
 //  val test = StaFlow.loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv")
-  val test = StaFlow.loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base3.csv")
+  val test = StaFlow.loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv")
   println(s"total:${test.count()}")
   /**
     * +---+----+----+----+----+----+----+----+---+---+
@@ -22,7 +22,10 @@ object CategoriesBinsDefinedTest extends App{
   //d14,day7,m1,m3,m6,m12,m18,m24,m60
   val featureCols = "day7,m1,m3,m6,m12,m18,m24,m60".split(",")
   val labelCol = "d14"
-  val cMap = Map("m60" ->"(小学),(初中),(大学;博士)")
+
+  import scala.collection.JavaConversions._
+//  val cMap = Map("m60" ->"(小学),(初中),(大学;博士)","m18"->"-Infinity,15.8,32.6,49.400000000000006,66.2,Infinity")
+  val cMap = Map2Json.getJavaMap.mapValues(strV => strV.map(x => x).toArray).toMap
   val row2ColsDf = StaFlow.row2ColDf(test.select(labelCol,cMap.keySet.toArray:_*), cMap.keySet.toArray, labelCol)
   row2ColsDf.show()
 
@@ -44,7 +47,7 @@ object CategoriesBinsDefinedTest extends App{
 
   val staDf = staBinsDf.withColumn("bin", StaFlow.categoriesDefinedBin($"value", $"bins"))
   println("staDf###############")
-  staDf.show(10, truncate = 0)
+  staDf.show(100, truncate = 0)
 
   val binsDF = StaFlow.binsIndexExcludeMinMaxDF(staDf)
   println("binsDF#####")
@@ -80,6 +83,10 @@ object CategoriesBinsDefinedTest extends App{
     */
 
   val totalIndex = StaFlow.totalCategoriesIndex(binsIndex)
-  totalIndex.join(staBinsDf.select("key_field_name","bins","binCount"), Seq("key_field_name"), "left").show()
-
+  println("total-index")
+  totalIndex.show()
+//  totalIndex.join(staBinsDf.select("key_field_name","bins","binCount"), Seq("key_field_name"), "inner").show()
+  StaFlow.useBinsCategoriesTemplate(totalIndex,cMap).withColumn("bins",udf{ x: Seq[String]=> {
+    x.mkString(",")
+  }}.apply(col("bins"))).withColumnRenamed("bins", "bin").show()
 }

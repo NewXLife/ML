@@ -1,12 +1,15 @@
 package sta
 
+import com.niuniuzcd.demo.util.DSHandler
+import sta.FeatureBinning3.totalResDf
+
 object CategoriesBinsTest extends App{
   val spark = StaFlow.spark
 
   import spark.implicits._
   import org.apache.spark.sql.functions._
 //  val test = StaFlow.loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv")
-  val test = StaFlow.loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base3.csv")
+  val test = StaFlow.loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv")
   println(s"total:${test.count()}")
   /**
     * +---+----+----+----+----+----+----+----+---+---+
@@ -28,7 +31,7 @@ object CategoriesBinsTest extends App{
   val disCount = 3
   val aggDf = StaFlow.row2ColDFAggValue(row2ColsDf, method ="collect_set")
   aggDf.show()
-  val binsDf = aggDf.withColumn("binCount",udf{tv:String =>{
+  val binsDf = aggDf.withColumn("bin_count",udf{tv:String =>{
     val disCount = tv.split(",").length
     disCount
   }}.apply(col("tValue")))
@@ -53,7 +56,7 @@ object CategoriesBinsTest extends App{
   val joinDF = row2ColsDf.join(staBinsDf, Seq("key_field_name"), "left")
   joinDF.show()
 
-  val staDf = joinDF.withColumn("bin", StaFlow.categoriesBin($"value", $"bins", $"binCount"))
+  val staDf = joinDF.withColumn("bin", StaFlow.categoriesBin($"value", $"bins", $"bin_count"))
 
   val binsDF = StaFlow.binsIndexExcludeMinMaxDF(staDf)
   println("binsDF#####")
@@ -78,6 +81,8 @@ object CategoriesBinsTest extends App{
     */
 
   val binsIndex = StaFlow.binsExcludeMinMaxIndex(binsDF, masterDF)
+//  DSHandler.save2MysqlDb(binsIndex.withColumn("statistic_id", lit(100)).withColumn("statistic_uuid", lit("abc")), "dataset_statistic_bins_categories")
+  println("binsIndex")
   binsIndex.show()
   /**
     * +--------------+------+-----------------+-------------------+-------------+-------------------+------------------+------------------+------------------+
@@ -89,6 +94,8 @@ object CategoriesBinsTest extends App{
     */
 
   val totalIndex = StaFlow.totalCategoriesIndex(binsIndex)
-  totalIndex.join(staBinsDf.select("key_field_name","bins","binCount"), Seq("key_field_name"), "left").show()
-
+  val finaldf = totalIndex.join(staBinsDf.select("key_field_name","bins","bin_count"), Seq("key_field_name"), "left")
+  println("finaldf")
+  finaldf.show()
+//  DSHandler.save2MysqlDb(finaldf.withColumn("statistic_id", lit(100)).withColumn("statistic_uuid", lit("abc")).withColumnRenamed("bins","bin"), "dataset_statistic_bins_categories")
 }
