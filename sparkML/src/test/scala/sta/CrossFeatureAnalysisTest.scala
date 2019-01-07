@@ -2,12 +2,16 @@ package sta
 
 import com.alibaba.fastjson.JSON
 import com.alibaba.fastjson.serializer.SerializerFeature
+import com.google.gson.Gson
+import org.json4s._
+import org.json4s.jackson.JsonMethods._
 
 import scala.collection.mutable.ArrayBuffer
+import scala.util.parsing.json.JSONObject
 
-//object GsonParser extends Serializable{
-//  val gson = new Gson()
-//}
+object GsonParser extends Serializable{
+  val gson = new Gson()
+}
 
 //class GsonParser2 extends Serializable {
 //  val  gson: Gson = new GsonBuilder()
@@ -26,7 +30,7 @@ object CrossFeatureAnalysisTest extends App {
   import org.apache.spark.sql.functions._
   import spark.implicits._
 
-  val test = StaFlow.loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv")
+  val test = StaFlow.loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base3.csv")
   //  val test = StaFlow.loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base3.csv").orderBy("ad")
   test.show(10, truncate = 0)
 
@@ -257,17 +261,30 @@ object CrossFeatureAnalysisTest extends App {
 //    }
 //    result
 //  }
-  val map = new java.util.HashMap[String, Object]()
+
+//导入隐式值
+//implicit val formats = DefaultFormats
+  import org.json4s._
+  import org.json4s.jackson.Serialization
+  import org.json4s.jackson.Serialization.{read, write}
+  implicit val formats = Serialization.formats(NoTypeHints)
+
+//  val map = new java.util.HashMap[String, Bin]()
   //  map.put("abc", List(Bin(0, "(0,1]"),Bin(0,"(1,2]")).toArray)
 
   //  println( gson.toJson(map) )
-//  val gson = GsonParser.gson //分布是环境中需要用一个类封装并且序列化
+
+  var map : Map[String, Bin] = Map()
+  val gson = GsonParser.gson //分布是环境中需要用一个类封装并且序列化
   case class Bin(index:Int, bin:String)
   val finalDF = resDF.withColumn("cross_bin", udf{(x:Seq[String], y:Seq[String]) =>{
-    map.put(featureName1, Bin(x.head.toInt, x.last))
-    map.put(featureName2, Bin(y.head.toInt, y.last))
-
-    JSON.toJSONString(map,SerializerFeature.WriteMapNullValue)
+    map += (featureName1 -> Bin(x.head.toInt, x.last))
+    map += (featureName2 -> Bin(y.head.toInt, y.last))
+    val ser = write(map)
+    println(ser)
+    ser
+//    gson.toJson(map)
+//    JSON.toJSONString(map,SerializerFeature.WriteNullStringAsEmpty)
 //    val json = gson.toJson(map.toMap)
 //    if(isGoodJson(json))
 //      json
