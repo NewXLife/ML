@@ -1,16 +1,27 @@
 package sta
 
-import com.google.gson.Gson
-import com.niuniuzcd.demo.util.DSHandler
+import com.alibaba.fastjson.JSON
+import com.alibaba.fastjson.serializer.SerializerFeature
 
 import scala.collection.mutable.ArrayBuffer
 
-object GsonParser extends Serializable{
-  val gson = new Gson()
-}
+//object GsonParser extends Serializable{
+//  val gson = new Gson()
+//}
+
+//class GsonParser2 extends Serializable {
+//  val  gson: Gson = new GsonBuilder()
+////    .set()// json宽松
+//    .enableComplexMapKeySerialization()//支持Map的key为复杂对象的形式
+//    .serializeNulls() //智能null
+//    .setPrettyPrinting()// 调教格式
+//    .disableHtmlEscaping() //默认是GSON把HTML 转义的
+//    .create()
+//}
 
 object CrossFeatureAnalysisTest extends App {
   val spark = StaFlow.spark
+//  val gson2 = new GsonParser2().gson
 
   import org.apache.spark.sql.functions._
   import spark.implicits._
@@ -233,18 +244,35 @@ object CrossFeatureAnalysisTest extends App {
     * combine f1_bin and f2_bin
     * cross_bin
     */
+
+//  def isGoodJson(json: String):Boolean = {
+//
+//    if(null == json) {
+//      return false
+//    }
+//    val result =  JSON.parseFull(json) match {
+//      case Some(_:  Map[String, Any]) => true
+//      case None => false
+//      case _ => false
+//    }
+//    result
+//  }
   val map = new java.util.HashMap[String, Object]()
   //  map.put("abc", List(Bin(0, "(0,1]"),Bin(0,"(1,2]")).toArray)
 
   //  println( gson.toJson(map) )
-
+//  val gson = GsonParser.gson //分布是环境中需要用一个类封装并且序列化
   case class Bin(index:Int, bin:String)
   val finalDF = resDF.withColumn("cross_bin", udf{(x:Seq[String], y:Seq[String]) =>{
     map.put(featureName1, Bin(x.head.toInt, x.last))
     map.put(featureName2, Bin(y.head.toInt, y.last))
-    //    var map = Map("f1" -> Bin(0, x), "f2"->Bin(0,y))
-    val gson = GsonParser.gson //分布是环境中需要用一个类封装并且序列化
-    gson.toJson(map)
+
+    JSON.toJSONString(map,SerializerFeature.WriteMapNullValue)
+//    val json = gson.toJson(map.toMap)
+//    if(isGoodJson(json))
+//      json
+//    else
+//      gson.toJson(map.clear())
   }}.apply($"${featureName1+"_bin"}", $"${featureName2+"_bin"}")).drop($"${featureName1+"_bin"}").drop($"${featureName2+"_bin"}")
   finalDF.show(10, truncate = 0)
   /**
@@ -257,7 +285,7 @@ object CrossFeatureAnalysisTest extends App {
     * |6         |0           |6              |0.0                |{"m1":{"index":2,"bin":"(5,11]"},"m60":{"index":2,"bin":"初中"}}              |
     * +----------+------------+---------------+-------------------+----------------------------------------------------------------------------+
     */
-  DSHandler.save2MysqlDb(finalDF.withColumn("statistic_id", lit(3)).withColumn("statistic_uuid", lit("abc")), "dataset_statistic_bins_cross")
+//  DSHandler.save2MysqlDb(finalDF.withColumn("statistic_id", lit(3)).withColumn("statistic_uuid", lit("abc")), "dataset_statistic_bins_cross")
 }
 
 class CrossFeaturesEmptyException(message: String, cause: Throwable)
