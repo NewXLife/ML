@@ -3,6 +3,8 @@ package ml
 import org.apache.spark.ml.feature.Binarizer
 import org.apache.spark.sql.SparkSession
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
   * 二值化
   * Binarization is the process of thresholding numerical features to binary (0/1) features.
@@ -17,17 +19,28 @@ object SparkMLlibTransformerBinarizer extends App{
   val spark = SparkSession.builder().appName("test").master("local[*]").getOrCreate()
 
   val df = spark.createDataFrame(data).toDF("id","features")
-
   df.show()
-//  +---+--------+
-//  | id|features|
-//  +---+--------+
-//  |  0|     0.1|
-//  |  1|     1.0|
-//  |  2|     0.8|
-//  |  3|     0.5|
-//  |  4|     0.2|
-//  +---+--------+
+  //  +---+--------+
+  //  | id|features|
+  //  +---+--------+
+  //  |  0|     0.1|
+  //  |  1|     1.0|
+  //  |  2|     0.8|
+  //  |  3|     0.5|
+  //  |  4|     0.2|
+  //  +---+--------+
+
+  import org.apache.spark.sql.expressions.Window
+  import org.apache.spark.sql.functions._
+  import spark.implicits._
+  val w = Window.orderBy("features")
+  val result = df.withColumn("index", row_number().over(w))
+  result.show()
+
+  result.withColumn("features_bin",udf{(x:Any, y:Any) =>{
+    ArrayBuffer(x.toString, y.toString)
+  }}.apply($"index", $"features")).show()
+
 
   val binarizer = new Binarizer().setInputCol("features").setOutputCol("b_features").setThreshold(0.5)
 

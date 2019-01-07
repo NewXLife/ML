@@ -28,7 +28,7 @@ public class Map2Json {
         cm.setBinsTemplate(getJavaMap());
 
         CrossAnalysisModel cm1  = new CrossAnalysisModel();
-       cm1.setBinningThreshold(0);
+       cm1.setBinningThreshold(5);
        cm1.setFeatureName("m1");
        cm1.setBinsTemplate(getJavaMap2());
 

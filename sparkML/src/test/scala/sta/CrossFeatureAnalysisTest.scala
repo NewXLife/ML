@@ -5,6 +5,10 @@ import com.niuniuzcd.demo.util.DSHandler
 
 import scala.collection.mutable.ArrayBuffer
 
+object GsonParser extends Serializable{
+  val gson = new Gson()
+}
+
 object CrossFeatureAnalysisTest extends App {
   val spark = StaFlow.spark
 
@@ -84,17 +88,48 @@ object CrossFeatureAnalysisTest extends App {
     * |0  |博士 |16.0|
     * +---+---+----+
     */
-
+  import org.apache.spark.sql.expressions.Window
   if (featureBuffer.nonEmpty) {
     for (obj <- featureBuffer) {
       if (obj.isUseTemplate)
       //模板需要用， 需要指定那些特征用的模板
         tempDF = tempDF.withColumn(obj.name + "_bin", lit(obj.t(obj.name)))
-      else
-        tempDF = tempDF.withColumn(obj.name + "_bin", udf { str: String => {
-          str
-        }
-        }.apply(col(obj.name)))
+      else{
+        val w = Window.orderBy(obj.name)
+        //sort(cdf("count").desc)
+//        val t1 = tempDF.select($"${obj.name}".cast("double")).distinct()
+//          t1.sort(-t1(obj.name)).show()
+        val subTemp = tempDF.select(obj.name).distinct().withColumn(obj.name + "_index", row_number().over(w))
+        println("subTemp")
+        subTemp.show()
+        /**
+          * +----+--------+
+          * |  m1|m1_index|
+          * +----+--------+
+          * |10.0|       1|
+          * |16.0|       2|
+          * | 2.0|       3|
+          * | 5.0|       4|
+          * +----+--------+
+          */
+        val byValueDF = subTemp.withColumn(obj.name + "_bin", udf {(x:Any, y:Any) =>{
+          ArrayBuffer(x.toString, y.toString)
+        }}.apply($"${obj.name + "_index"}", $"${obj.name}")).drop(obj.name + "_index")
+        byValueDF.show()
+
+        /**
+          * +----+---------+
+          * |  m1|   m1_bin|
+          * +----+---------+
+          * |10.0|[1, 10.0]|
+          * |16.0|[2, 16.0]|
+          * | 2.0| [3, 2.0]|
+          * | 5.0| [4, 5.0]|
+          * +----+---------+
+          */
+        tempDF = tempDF.join(byValueDF, Seq(obj.name), "left")
+        tempDF.show()
+      }
     }
   } else {
     throw new CrossFeaturesEmptyException(s"cross analysis failed, input features is empty, featureSize=${featureBuffer.length}")
@@ -200,7 +235,7 @@ object CrossFeatureAnalysisTest extends App {
     */
   val map = new java.util.HashMap[String, Object]()
   //  map.put("abc", List(Bin(0, "(0,1]"),Bin(0,"(1,2]")).toArray)
-  val gson = new Gson()
+
   //  println( gson.toJson(map) )
 
   case class Bin(index:Int, bin:String)
@@ -208,6 +243,7 @@ object CrossFeatureAnalysisTest extends App {
     map.put(featureName1, Bin(x.head.toInt, x.last))
     map.put(featureName2, Bin(y.head.toInt, y.last))
     //    var map = Map("f1" -> Bin(0, x), "f2"->Bin(0,y))
+    val gson = GsonParser.gson //分布是环境中需要用一个类封装并且序列化
     gson.toJson(map)
   }}.apply($"${featureName1+"_bin"}", $"${featureName2+"_bin"}")).drop($"${featureName1+"_bin"}").drop($"${featureName2+"_bin"}")
   finalDF.show(10, truncate = 0)
