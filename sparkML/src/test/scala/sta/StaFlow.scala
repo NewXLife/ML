@@ -305,7 +305,6 @@ class StaFlow extends Serializable {
     spark.sql(
       s"""
         |select
-        |bins.key_field_name as key_field_name,
         |${featureBinNameArray(0)},
         |${featureBinNameArray(1)},
         |binSamples as bins_sample_count,

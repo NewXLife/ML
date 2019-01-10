@@ -23,10 +23,9 @@ public class Map2Json {
         List<CrossAnalysisModel> resList = new ArrayList<>();
 
         CrossAnalysisModel cm  = new CrossAnalysisModel();
-        cm.setBinningThreshold(0);
+        cm.setBinningThreshold(6);
         cm.setFeatureName("m60");
         cm.setBinsTemplate(getJavaMap());
-
         CrossAnalysisModel cm1  = new CrossAnalysisModel();
        cm1.setBinningThreshold(5);
        cm1.setFeatureName("m1");

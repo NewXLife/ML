@@ -3,6 +3,7 @@ package sta
 import com.alibaba.fastjson.JSON
 import com.alibaba.fastjson.serializer.SerializerFeature
 import com.google.gson.Gson
+import org.apache.spark.sql.{Column, DataFrame}
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
@@ -30,7 +31,7 @@ object CrossFeatureAnalysisTest extends App {
   import org.apache.spark.sql.functions._
   import spark.implicits._
 
-  val test = StaFlow.loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base3.csv")
+  val test = StaFlow.loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv")
   //  val test = StaFlow.loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base3.csv").orderBy("ad")
   test.show(10, truncate = 0)
 
@@ -82,7 +83,7 @@ object CrossFeatureAnalysisTest extends App {
   val featureBinNameArray = featureCols.map(name => name + "_bin").toArray
 
   require(featureCols.nonEmpty ,"feature length must bigger than zero,please checked.")
-  var tempDF = test.select(labelCol, featureCols.toSet.toArray: _*)
+  var tempDF = test.select(labelCol, featureCols.toSet.toArray: _*).na.fill("NULL")
 
   println("tempDF------------------")
   tempDF.show(10, truncate = 0)
@@ -144,6 +145,20 @@ object CrossFeatureAnalysisTest extends App {
           */
         tempDF = tempDF.join(byValueDF, Seq(obj.name), "left")
         tempDF.show()
+
+        /**
+          * |  m1| m60|d14|  m60_bin|   m1_bin|
+          * +----+----+---+---------+---------+
+          * | 2.0|  大学|  0|  [4, 大学]| [3, 2.0]|
+          * | 2.0|  大学|  0|  [4, 大学]| [3, 2.0]|
+          * | 2.0|  初中|  0|  [2, 初中]| [3, 2.0]|
+          * | 5.0|  初中|  0|  [2, 初中]| [4, 5.0]|
+          * | 5.0|  初中|  0|  [2, 初中]| [4, 5.0]|
+          * | 5.0|  初中|  0|  [2, 初中]| [4, 5.0]|
+          * |10.0|  大学|  1|  [4, 大学]|[1, 10.0]|
+          * |10.0|  大学|  1|  [4, 大学]|[1, 10.0]|
+          * |10.0|  大学|  1|  [4, 大学]|[1, 10.0]|
+          */
       }
     }
   } else {
@@ -189,9 +204,9 @@ object CrossFeatureAnalysisTest extends App {
     * |0  |初中 |5.0 |[2, 初中]   |[2, (5,11]]           |
     */
 
-  val row2ColDF = StaFlow.row2ColCrossDf(tempDF, featureCols.toArray, labelCol)
-  println("row2ColDF--------------")
-  row2ColDF.show(10, truncate = 0)
+//  val row2ColDF = StaFlow.row2ColCrossDf(tempDF, featureCols.toArray, labelCol)
+//  println("row2ColDF--------------")
+//  row2ColDF.show(10, truncate = 0)
   /**
     * +-----+----------+-----------+--------------+-----+
     * |label|m60_bin   |m1_bin     |key_field_name|value|
@@ -202,9 +217,21 @@ object CrossFeatureAnalysisTest extends App {
     * |0    |[3, 大学,博士]|[1, (2,5]] |m1            |2.0  |
     */
 
-  val groupByCols = featureCols.map(name => row2ColDF(name + "_bin"))
+  val groupByCols = featureCols.map(name => tempDF(name + "_bin"))
+def binsIndexCrossDF(binsDF: DataFrame,groupyCols:Array[Column]): DataFrame = {
+  import binsDF.sparkSession.implicits._
+  val total = binsDF.count()
+  binsDF.groupBy(groupyCols:_*).agg(
+    count("*").as("binSamples"),
+    (count("*") / total).as("binsSamplePercent"),
+    sum(when($"label" > 0, 1).otherwise(0)).as("overdueCount"),
+    sum(when($"label" === 0, 1).otherwise(0)).as("notOverdueCount"),
+    (sum(when($"label" > 0, 1).otherwise(0)) / count("*")).as("overdueCountPercent")
+  )
+}
 
-  val binDF = StaFlow.binsIndexCrossDF(row2ColDF, groupByCols.toArray)
+  tempDF = tempDF.withColumnRenamed(labelCol, "label")
+  val binDF = binsIndexCrossDF(tempDF, groupByCols.toArray)
   println("binDF-----------------")
   binDF.show(10, truncate = 0)
   /**
@@ -218,9 +245,9 @@ object CrossFeatureAnalysisTest extends App {
     * +----------+----------------------+----------+------------+---------------+-------------------+
     */
 
-  val masterDF = StaFlow.totalIndexCross(row2ColDF)
-  println("masterDF-----------------")
-  masterDF.show(10, truncate = 0)
+//  val masterDF = StaFlow.totalIndexCross(row2ColDF)
+//  println("masterDF-----------------")
+//  masterDF.show(10, truncate = 0)
   /**
     * masterDF-----------------
     * +--------------+------------+------------+---------------+-------------------+
@@ -231,7 +258,9 @@ object CrossFeatureAnalysisTest extends App {
     * +--------------+------------+------------+---------------+-------------------+
     */
 
-  val resDF = StaFlow.binsDFJoinMasterDFCross(binDF, masterDF, featureBinNameArray)
+//  val resDF = StaFlow.binsDFJoinMasterDFCross(binDF, masterDF, featureBinNameArray)
+//  println("resdf---------------res")
+//  resDF.show(100, truncate = 0)
 
   /**
     * +----------+----------------------+----------+------------+---------------+-------------------+
@@ -249,26 +278,13 @@ object CrossFeatureAnalysisTest extends App {
     * cross_bin
     */
 
-//  def isGoodJson(json: String):Boolean = {
-//
-//    if(null == json) {
-//      return false
-//    }
-//    val result =  JSON.parseFull(json) match {
-//      case Some(_:  Map[String, Any]) => true
-//      case None => false
-//      case _ => false
-//    }
-//    result
-//  }
-
-//导入隐式值
-//implicit val formats = DefaultFormats
-  import org.json4s._
-  import org.json4s.jackson.Serialization
-  import org.json4s.jackson.Serialization.{read, write}
-  implicit val formats = Serialization.formats(NoTypeHints)
-
+  object  UserSerialization extends Serializable {
+    import org.json4s._
+    import org.json4s.jackson.Serialization
+    import org.json4s.jackson.Serialization.write
+    implicit val formats = Serialization.formats(NoTypeHints)
+    def wr(map:Map[String, Bin]) = write(map)
+  }
 //  val map = new java.util.HashMap[String, Bin]()
   //  map.put("abc", List(Bin(0, "(0,1]"),Bin(0,"(1,2]")).toArray)
 
@@ -277,12 +293,13 @@ object CrossFeatureAnalysisTest extends App {
   var map : Map[String, Bin] = Map()
   val gson = GsonParser.gson //分布是环境中需要用一个类封装并且序列化
   case class Bin(index:Int, bin:String)
-  val finalDF = resDF.withColumn("cross_bin", udf{(x:Seq[String], y:Seq[String]) =>{
+  val finalDF = binDF.withColumn("cross_bin", udf{(x:Seq[String], y:Seq[String]) =>{
     map += (featureName1 -> Bin(x.head.toInt, x.last))
     map += (featureName2 -> Bin(y.head.toInt, y.last))
-    val ser = write(map)
-    println(ser)
+    map
+    val ser = UserSerialization.wr(map)
     ser
+//    ser
 //    gson.toJson(map)
 //    JSON.toJSONString(map,SerializerFeature.WriteNullStringAsEmpty)
 //    val json = gson.toJson(map.toMap)
@@ -291,6 +308,15 @@ object CrossFeatureAnalysisTest extends App {
 //    else
 //      gson.toJson(map.clear())
   }}.apply($"${featureName1+"_bin"}", $"${featureName2+"_bin"}")).drop($"${featureName1+"_bin"}").drop($"${featureName2+"_bin"}")
+
+  import org.apache.spark.sql.functions.to_json
+  import org.apache.spark.sql.functions.udf
+  println("##########3")
+//  val convert_map_json = udf{
+//    (map:Map[String, Object]) => convertMapToJson(map).toString
+//  }
+  finalDF.withColumn("cross_bin", to_json(struct($"cross_bin"))).show(10, truncate=0)
+
   finalDF.show(10, truncate = 0)
   /**
     * +----------+------------+---------------+-------------------+----------------------------------------------------------------------------+
