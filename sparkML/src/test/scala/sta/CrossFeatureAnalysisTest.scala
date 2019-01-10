@@ -31,10 +31,16 @@ object CrossFeatureAnalysisTest extends App {
   import org.apache.spark.sql.functions._
   import spark.implicits._
 
-  val test = StaFlow.loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv")
+  var test = StaFlow.loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv")
   //  val test = StaFlow.loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base3.csv").orderBy("ad")
   test.show(10, truncate = 0)
+  val labelCol = "d14"
+  test = test.select($"$labelCol",$"m1".cast("int"), $"m60")
+  test.printSchema()
 
+  println("----one col2string")
+  val test2 = test.withColumn("m1", $"m1".cast("string"))
+  test2.printSchema()
   /**
     * feature cross
     * f1: "-Infinity,14.0,29.0,44.0,59.0,Infinity"
@@ -49,7 +55,7 @@ object CrossFeatureAnalysisTest extends App {
 
   //  case class TestFeatures(name: String, threshold: Int, )
   import scala.collection.JavaConversions._
-  val labelCol = "d14"
+
 
   val crossFeatureList:List[CrossAnalysisModel] = Map2Json.getCrossList.toList
 
@@ -83,7 +89,7 @@ object CrossFeatureAnalysisTest extends App {
   val featureBinNameArray = featureCols.map(name => name + "_bin").toArray
 
   require(featureCols.nonEmpty ,"feature length must bigger than zero,please checked.")
-  var tempDF = test.select(labelCol, featureCols.toSet.toArray: _*).na.fill("NULL")
+  var tempDF = test.select(labelCol, featureCols.toSet.toArray: _*)
 
   println("tempDF------------------")
   tempDF.show(10, truncate = 0)
@@ -115,7 +121,7 @@ object CrossFeatureAnalysisTest extends App {
         //sort(cdf("count").desc)
 //        val t1 = tempDF.select($"${obj.name}".cast("double")).distinct()
 //          t1.sort(-t1(obj.name)).show()
-        val subTemp = tempDF.select(obj.name).distinct().withColumn(obj.name + "_index", row_number().over(w))
+        val subTemp = tempDF.select($"${obj.name}".cast("string")).na.fill("NULL").distinct().withColumn(obj.name + "_index", row_number().over(w))
         println("subTemp")
         subTemp.show()
         /**
@@ -143,7 +149,9 @@ object CrossFeatureAnalysisTest extends App {
           * | 5.0| [4, 5.0]|
           * +----+---------+
           */
-        tempDF = tempDF.join(byValueDF, Seq(obj.name), "left")
+        tempDF = tempDF.withColumn(obj.name, $"${obj.name}".cast("string")).na.fill("NULL").join(byValueDF, Seq(obj.name), "left")
+        println("new-----------------")
+        tempDF.printSchema()
         tempDF.show()
 
         /**
