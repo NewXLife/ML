@@ -301,6 +301,11 @@ def binsIndexCrossDF(binsDF: DataFrame,groupyCols:Array[Column]): DataFrame = {
   var map : Map[String, Bin] = Map()
   val gson = GsonParser.gson //分布是环境中需要用一个类封装并且序列化
   case class Bin(index:Int, bin:String)
+
+  println("--------------------------overwrite-----------------------")
+  binDF.show()
+  binDF.select(struct(s"${featureName1+"_bin"}", s"${featureName2+"_bin"}").as("a-b")).show(100, truncate = 0)
+
   val finalDF = binDF.withColumn("cross_bin", udf{(x:Seq[String], y:Seq[String]) =>{
     map += (featureName1 -> Bin(x.head.toInt, x.last))
     map += (featureName2 -> Bin(y.head.toInt, y.last))

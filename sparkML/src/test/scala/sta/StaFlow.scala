@@ -23,13 +23,12 @@ class StaFlow extends Serializable {
   }
 
 
-  val spark = SparkSession.builder().appName("test-binning").master("local[*]").getOrCreate()
+ implicit val spark = SparkSession.builder().appName("test-binning").master("local[*]").getOrCreate()
   spark.conf.set("spark.sql.inMemoryColumnarStorage.batchSize", 10000)
   spark.conf.set("spark.sql.default.parallelism", 100)
   spark.conf.set("spark.sql.shuffle.partitions", 20)
   spark.conf.set("spark.sql.inMemoryColumnarStorage.compressed", value = true)
   spark.sparkContext.setLogLevel("ERROR")
-  spark
 
   def loadCSVData(csv: String, filePath: String, hasHeader: Boolean = true) = {
     if (hasHeader) spark.read.format(csv).option("header", "true").load(filePath)

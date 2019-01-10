@@ -22,17 +22,14 @@ object DTUtils {
     */
   def extractConBins(model: DecisionTreeClassificationModel): Array[Double] = {
     val splits = getSplits(model)
-    val points = splits.map(spl => {
-      val ret = spl match {
-        case s: ContinuousSplit =>
-          val point: Double = s.threshold
-          point
-        case one: Split =>
-          println(s"type not constant+${one.featureIndex}")
-          -100.0d
-      }
-      ret
-    })
+    val points = splits.map {
+      case s: ContinuousSplit =>
+        val point: Double = s.threshold
+        point
+      case one: Split =>
+        println(s"type not constant+${one.featureIndex}")
+        -100.0d
+    }
     (Double.NegativeInfinity +: points.sorted :+ Double.PositiveInfinity).toArray
   }
 
@@ -44,19 +41,13 @@ object DTUtils {
     */
   def extractCateBins(model: DecisionTreeClassificationModel): Array[Double] = {
     val splits = getSplits(model)
-    val points = splits.map(spl => {
-      val ret = spl match {
-        case s: CategoricalSplit => {
-          val point: Array[Double] = s.leftCategories
-          point
-        }
-        case one: Split => {
-          println(s"type not constant+${one.featureIndex}")
-          Array(-100.0d)
-        }
-      }
-      ret
-    })
+    val points = splits.map {
+      case s: CategoricalSplit =>
+        s.leftCategories
+      case one: Split =>
+        println(s"type not constant+${one.featureIndex}")
+        Array(-100.0d)
+    }
     (Double.NegativeInfinity +: points.flatten.sorted :+ Double.PositiveInfinity).toArray
   }
 
@@ -181,15 +172,18 @@ object DTUtils {
     }
     node match {
       case node: InternalNode =>
-
         val left = node.leftChild
         if (left != null) {
           recursiveExtraSplits(left, buf)
         }
+
         buf.append(node.split)
-        if (node.rightChild != null) {
-          recursiveExtraSplits(node.rightChild, buf)
+
+        val right = node.rightChild
+        if (right != null) {
+          recursiveExtraSplits(right, buf)
         }
+
       case leaf: LeafNode =>
         println(s"Can not recognized node type!+${leaf.getClass.toString}")
     }
@@ -234,9 +228,5 @@ object DTUtils {
 
   case class BinInfo(range: (Double, Double), hitInfo: Array[Double])
 
-  //  case class cateBinInfo(override val range: Set[Double], override val hitInfo: Array[Double]) extends BinInfo(range = null, hitInfo) {}
-
-
   implicit def tupleToBin(db: (Double, Array[Double], Double)): BinTmpInfo = BinTmpInfo(db._1, db._2, db._3)
-
 }

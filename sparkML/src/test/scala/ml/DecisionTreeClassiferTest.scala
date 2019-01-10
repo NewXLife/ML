@@ -674,12 +674,12 @@ object DecisionTreeClassiferTest extends App {
   // 训练决策树模型
   val dt = new DecisionTreeClassifier().setLabelCol("indexedLabel")
     .setFeaturesCol("indexedFeatures")
-//    .setImpurity("entropy") //
+    //    .setImpurity("entropy") //
     .setImpurity("gini") //
-//    .setMaxBins(100) //离散化"连续特征"的最大划分数
+    //    .setMaxBins(100) //离散化"连续特征"的最大划分数
     .setMaxDepth(4) //树的最大深度
     .setMinInfoGain(0.01) //一个节点分裂的最小信息增益，值为[0,1]
-//    .setMinInstancesPerNode(10) //每个节点包含的最小样本数
+    //    .setMinInstancesPerNode(10) //每个节点包含的最小样本数
     .setSeed(7)
 
   // 将索引标签转换回原始标签

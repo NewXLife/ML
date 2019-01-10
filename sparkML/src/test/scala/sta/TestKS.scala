@@ -42,7 +42,7 @@ private[sta] object TestKS extends App{
     callUDF("concat_ws", lit(","), callUDF("collect_list", $"value")).as("tValue")
   )
 
-  //df.select(struct("id", "name").as("a-b")).show()
+//  df.select(struct("id", "name").as("a-b")).show()
   import spark.implicits._
   val res1= res.select($"feature",struct("label", "tValue").as("label_value"))
   res1.printSchema()
