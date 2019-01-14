@@ -17,4 +17,8 @@ object SeqFlattern extends App{
 //    println(x)
 //  }
 //  println(testMap.getClass)
+
+  val test = "1.0"
+  println(test.toDouble)
+  println(test.toInt)
 }

@@ -48,7 +48,7 @@ object DTUtils {
         println(s"type not constant+${one.featureIndex}")
         Array(-100.0d)
     }
-    (Double.NegativeInfinity +: points.flatten.sorted :+ Double.PositiveInfinity).toArray
+    points.flatten.sorted.toArray
   }
 
 

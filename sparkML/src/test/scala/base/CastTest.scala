@@ -33,6 +33,4 @@ object CastTest  extends  FunSuite{
   implicit val popInt: ParseOp[Int] = ParseOp[Int](_.toInt)
   implicit val popLong: ParseOp[Long] = ParseOp[Long](_.toLong)
   implicit val popFloat: ParseOp[Float] = ParseOp[Float](_.toFloat)
-
-
 }

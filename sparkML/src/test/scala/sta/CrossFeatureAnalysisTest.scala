@@ -37,6 +37,9 @@ object CrossFeatureAnalysisTest extends App {
   val labelCol = "d14"
   test = test.select($"$labelCol",$"m1".cast("int"), $"m60")
   test.printSchema()
+  println("----------------------")
+  println(test.count())
+
 
   println("----one col2string")
   val test2 = test.withColumn("m1", $"m1".cast("string"))

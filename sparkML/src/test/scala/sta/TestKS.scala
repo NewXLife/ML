@@ -1,7 +1,8 @@
 package sta
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.sql.types.{ArrayType, DataTypes, DoubleType, StringType}
+import org.apache.spark.sql.types.{DoubleType, StringType}
+import util.UserDefineFunction.AggKs
 
 import scala.collection.mutable.ArrayBuffer
 case class Ks(index_name: String, KS: Double)
@@ -42,10 +43,14 @@ private[sta] object TestKS extends App{
     callUDF("concat_ws", lit(","), callUDF("collect_list", $"value")).as("tValue")
   )
 
+  println("res-----------------")
+  res.show()
+
 //  df.select(struct("id", "name").as("a-b")).show()
   import spark.implicits._
   val res1= res.select($"feature",struct("label", "tValue").as("label_value"))
   res1.printSchema()
+  res1.show(20)
   /**
     * /**
     * * root
@@ -67,11 +72,47 @@ private[sta] object TestKS extends App{
     * |    m12|[0,42.0,67.0,66.0...|
     * ------------------------------
     */
+  spark.udf.register("ks", AggKs)
+
+  println("new ks -agg function")
+  res.groupBy("feature").agg(
+    callUDF("ks", $"label", $"tValue").as("ks")).show()
+
+
+  /**
+    * +-------+-------------------+
+    * |feature|                 ks|
+    * +-------+-------------------+
+    * |    m18|0.08919450797622797|
+    * |    m12|0.10087105544040276|
+    * |     m3| 0.1534993349310641|
+    * |    m60|0.08951461367428121|
+    * |     m6|0.15876802381914246|
+    * |     m1|0.13555954644242074|
+    * |   day7| 0.2793010353299552|
+    * |    m24| 0.0865441108228941|
+    * +-------+-------------------+
+    *
+    * +-------+-------------------+
+    * |feature|ks                 |
+    * +-------+-------------------+
+    * |m18    |0.08919450797622797|
+    * |m12    |0.10087105544040276|
+    * |m3     |0.1534993349310641 |
+    * |m60    |0.08951461367428121|
+    * |m6     |0.15876802381914246|
+    * |m1     |0.13555954644242074|
+    * |day7   |0.2793010353299552 |
+    * |m24    |0.0865441108228941 |
+    * +-------+-------------------+
+    */
+
   val res2 = res1.groupBy("feature").agg(
     callUDF("concat_ws", lit(";"), callUDF("collect_list", struct($"label_value").cast(StringType))).as("ks")
   )
   // [[1,2,3]];[[0,3,5,6]]
-
+println("res2------------")
+  res2.show(10, truncate = 0)
   res2.printSchema()
   /**
     * root
@@ -90,7 +131,7 @@ private[sta] object TestKS extends App{
     val r2 = filterSpecialChar(res(1)).split(",").toBuffer
     var p = Array[Double]()
     var n = Array[Double]()
-    if(r1.head.toInt == 0){
+    if(r1.head.toDouble == 0d){
       p = r1.tail.toArray.map(_.toDouble)
       n = r2.tail.toArray.map(_.toDouble)
     }else{
@@ -98,9 +139,7 @@ private[sta] object TestKS extends App{
       n = r1.tail.toArray.map(_.toDouble)
     }
     ks2Samp(p, n)
-  }}.apply(col("ks"))).show()
-
-  res2.show()
+  }}.apply(col("ks"))).show(10,truncate = 0)
 
 
   /**

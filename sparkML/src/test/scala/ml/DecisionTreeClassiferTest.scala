@@ -694,7 +694,7 @@ object DecisionTreeClassiferTest extends App {
   println("predictions############")
   predictions.show(10, truncate = 0)
 
-  //
+
   val evaluator = new MulticlassClassificationEvaluator().setLabelCol("indexedLabel").setPredictionCol("prediction").setMetricName("accuracy")
   val accuracy = evaluator.evaluate(predictions)
 
