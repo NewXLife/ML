@@ -8,7 +8,7 @@ object StabilityBinsTest extends App {
   import org.apache.spark.sql.functions._
   import spark.implicits._
 
-    val test = StaFlow.loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\td_statistic_feature_xk.csv")
+    val test = StaFlow.loadCSVData("csv", "file:\\C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv")
 //  val test = StaFlow.loadCSVData("csv", "file:\\D:\\NewX\\ML\\docs\\testData\\base3.csv").orderBy("ad")
   println(s"total:${test.count()}")
   /**
@@ -21,13 +21,13 @@ object StabilityBinsTest extends App {
     */
   test.show(10)
 
-  val staDf = test.withColumn("apply_risk_created_at", udf{x:Any => {
+  val staDf = test.withColumn("ad", udf{x:Any => {
     StaFlow.timeFormat(x)
-  }}.apply(col("apply_risk_created_at")))
+  }}.apply(col("ad")))
 
   //  d14,day7,m1,m3,m6,m12,m18,m24,m60
 
-  val labelCol = "overdue_days"
+  val labelCol = "d14"
 
 //  val colMap = Map("td_7day_platform_count_for_model" -> "(1,2],(2,3]",
 //    "td_3month_platform_count_model" -> "(2,3],(3,4]"
@@ -59,7 +59,7 @@ object StabilityBinsTest extends App {
 //  println(timeMap.mkString(","))
 
 
-  val row2ColsDf = StaFlow.row2ColDfContainsTimeCol(staDf, featureCols, labelCol, timeCol = "apply_risk_created_at")
+  val row2ColsDf = StaFlow.row2ColDfContainsTimeCol(staDf, featureCols, labelCol, timeCol = "ad")
    val res1 = row2ColsDf.withColumn("sta_time_range", lit(StaFlow.filterSpecialChar(resbinsArrar.mkString(";"))))
   res1.show(10, truncate = 0)
   res1.printSchema()
@@ -82,7 +82,7 @@ object StabilityBinsTest extends App {
     */
   //  StaFlow.splitBinningString
 
-  val res2= res1.withColumn("sta_time_range", StaFlow.splitBinningString($"apply_risk_created_at", $"sta_time_range"))
+  val res2= res1.withColumn("sta_time_range", StaFlow.splitBinningString($"ad", $"sta_time_range"))
 
    val res3 = StaFlow.useBinsDefinedBinsTemplate(res2, finalMap)
   res3.show(10, truncate = 0)

@@ -1,18 +1,14 @@
 package sta
 
+import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, DecisionTreeClassifier}
-import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorAssembler, VectorIndexer}
-import org.apache.spark.ml.tree.DTUtils.{recursiveExtraInfo, recursiveExtraSplits}
+import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.tree._
-import org.apache.spark.sql.DataFrame
 
-import scala.collection.mutable
-
-object DTBinsTest extends StaFlow with App {
+object DTBinsTestCategories extends StaFlow with App {
   import spark.implicits._
-  import org.apache.spark.sql.functions._
   val label = "d14"
-  var testDf = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv").withColumnRenamed(label, "label").withColumn("label", $"label".cast("int"))
+  var testDf = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv").withColumnRenamed(label, "label").na.drop().withColumn("label", $"label".cast("int"))
   testDf.show()
 
   /**
@@ -27,7 +23,7 @@ object DTBinsTest extends StaFlow with App {
     * use dt-tree all feature must be number
     */
   //dt统计特征数组
-  val features = Array("m1","m3","m6")
+  val features = Array("m60")
 //  val features = Array("m1", "m60")
   /**
     * +-----+----+---+----+----+----+----+----+----+---+---------+--------+
@@ -48,30 +44,40 @@ object DTBinsTest extends StaFlow with App {
     //    .setMinInstancesPerNode(10) //每个节点包含的最小样本数
     .setSeed(7)
 
-  val vectorAssembler = new VectorAssembler()
+
   // Index labels, adding metadata to the label column.
   // Fit on whole dataset to include all labels in index.
+  for (f <- features) {
+    println("feature============", f)
+    //离散特征转为索引
+    val cateFeatureIndexer = new StringIndexer()
+      .setInputCol(f)
+      .setOutputCol(f + "indexer").fit(testDf)
 
+    //特征索引包装为vector，作为决策树输入特征
+    val assembler = new VectorAssembler().setInputCols(Array(f + "indexer")).setOutputCol("features")
 
-  def staDT(staCols: Array[String],df: DataFrame) = {
-    var binsMap: mutable.Map[String, Array[Double]] = mutable.Map()
-    for (f <- staCols) {
-      //特征包装为向量
-      val staDF = df.withColumn(f, $"$f".cast("double")).where($"$f".notEqual(Double.NaN))
-      println("------------staDF")
-      staDF.show()
-      val singleDf =vectorAssembler.setInputCols(Array(f)).setOutputCol("features").transform(staDF)
-      println(" --------------singleDF")
-      singleDf.show()
-      val model = dt.fit(singleDf)
-      println("--------------------bins:", DTUtils.extractConBins(model).mkString(","))
-      binsMap += (f -> DTUtils.extractConBins(model))
+    // 将索引标签转换回原始标签
+    val featureConverter = new IndexToString().setInputCol(f + "indexer").setOutputCol(f+"_new").setLabels(cateFeatureIndexer.labels)
+
+    val pipeLine = new Pipeline().setStages(Array(cateFeatureIndexer,assembler, dt, featureConverter)).fit(testDf)
+    println("pipeline----------")
+    pipeLine.transform(testDf).show()
+    val treeModel = pipeLine.stages(2).asInstanceOf[DecisionTreeClassificationModel]
+
+    println("features number = ",treeModel.numFeatures)
+    println(treeModel.toDebugString)
+
+    /**
+      * 分箱信息
+      */
+    val binsArray = DTUtils.extractConBins(treeModel)
+    val binsCateArray = DTUtils.extractCateBins(treeModel)
+
+    println(binsArray.mkString(","))
+    println(binsCateArray.mkString(","))
   }
-    binsMap
-  }
 
-  println("---------------------------res----------------------")
-  val res = staDT(features, testDf)
-  println(res.keySet)
-  println(res.mkString(","))
+  //训练数据集划分
+  //  val Array(trainData, testData) = vecDf.randomSplit(Array(0.7, 0.3))
 }

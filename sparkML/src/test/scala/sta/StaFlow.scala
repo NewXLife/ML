@@ -145,7 +145,7 @@ class StaFlow extends Serializable {
   def splitStabilitySubBinBinning: UserDefinedFunction = udf { (value: String, binsArray: Seq[String]) =>
     var res = "(" + "missing-value" + ")"
     if (value != null && !value.equals("null") && !value.equals("NULL")) {
-      val pattern = "[()\\[\\]]".r
+      val pattern = "[()\\[\\]\"]".r
       for (bins <- binsArray) {
         val subArray = bins.split(",")
         val start = pattern.replaceAllIn(subArray(0), "")

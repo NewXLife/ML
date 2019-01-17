@@ -1,24 +1,19 @@
 package base
 
-import sta.Map2Json
-
 object SeqFlattern extends App{
-  val pattern = "[()\\[\\]]".r
-  val testStr = "(1]"
-  val res = pattern.replaceAllIn("(1]]", "")
-  println(res)
-//  import scala.collection.JavaConversions._
-//  val testMap = Map2Json.getJavaMap.toMap
-//  val rr = List("1")
-//  println(testMap.keySet)
-//  println(testMap.values)
-//  println(testMap.values.flatten.toArray.mkString(","))
-//  for(x  <- testMap.values.flatten){
-//    println(x)
-//  }
-//  println(testMap.getClass)
+//  val pattern = "[()\\[\\]]".r
+//  val testStr = "(1]"
+//  val res = pattern.replaceAllIn("(1]]", "")
 
-  val test = "1.0"
-  println(test.toDouble)
-  println(test.toInt)
+  val testArray = Array("f1","f2","f3").toBuffer
+
+  //获取移除的元素，此时 testArray = Array("f1","f3")
+  val res = testArray.remove(testArray.indexOf("f2"))
+
+  val r1 = testArray.filterNot(x => x.equals("f1"))
+
+  println(res)
+  println(testArray.mkString(","))
+  println(r1.mkString(","))
+
 }

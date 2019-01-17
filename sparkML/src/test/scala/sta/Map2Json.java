@@ -48,8 +48,9 @@ public class Map2Json {
     public static  Map<String,List<String>> getJavaMap(){
             Map<String,List<String>>  res = new HashMap<>();
             List<String>  list1 = new ArrayList<>();
-            list1.add("(小学)");
-            list1.add("初中");
+            list1.add("[\"小学\"");
+            list1.add("" +
+                    "\"初中\"]");
             list1.add("大学,博士");
 
         List<String>  list2 = new ArrayList<>();
