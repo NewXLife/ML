@@ -54,9 +54,10 @@ public class Map2Json {
             list1.add("大学,博士");
 
         List<String>  list2 = new ArrayList<>();
-        list2.add("(2,3]");
+        list2.add("(1,3]");
         list2.add("(3,4]");
 
+        res.put("m1", list2);
 //        res.put("m18", list2);
         res.put("m60", list1);
         return res;

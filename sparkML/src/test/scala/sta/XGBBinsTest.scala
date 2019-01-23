@@ -30,7 +30,7 @@ object XGBBinsTest extends App{
     //      "n_jobs" -> 1,
     "numWorkers" -> 1,
     "booster" -> "gbtree", //spark 目前只支持 gbtree（默认也是这个参数），设置其它参数会抛异常 //General Balanced Trees
-    "nthread" -> 4 //XGBoost运行时的线程数。缺省值是当前系统可以获得的最大线程数
+    "nthread" -> 1 //XGBoost运行时的线程数。缺省值是当前系统可以获得的最大线程数
 
   )
   //version 0.72

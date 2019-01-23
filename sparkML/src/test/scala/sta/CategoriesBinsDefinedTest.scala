@@ -28,6 +28,9 @@ object CategoriesBinsDefinedTest extends App{
   val cMap = Map2Json.getJavaMap.mapValues(strV => strV.map(x => x).toArray).toMap
   val row2ColsDf = StaFlow.row2ColDf(test.select(labelCol,cMap.keySet.toArray:_*), cMap.keySet.toArray, labelCol)
   row2ColsDf.show()
+  row2ColsDf.groupBy("key_field_name").agg(
+    count("*").as("f_count")
+  ).show()
 
 
 

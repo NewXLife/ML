@@ -38,6 +38,9 @@ object SparkMLlibTransformerStringIndexer2String extends App{
   val ts = indexer.transform(df)
   ts.show()
 
+  /**
+    * 按照出现的频次高低来编号
+    */
   /* a-> 3次， b：一次， c：二次 ，所以按照频次排序为  a：0 ， b：2， c：1
   +---+--------+-------------+
 | id|category|categoryIndex|

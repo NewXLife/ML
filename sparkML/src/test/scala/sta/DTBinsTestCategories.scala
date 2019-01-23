@@ -4,12 +4,13 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, DecisionTreeClassifier}
 import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.tree._
+import org.apache.spark.sql.types.StringType
 
 object DTBinsTestCategories extends StaFlow with App {
   import spark.implicits._
   val label = "d14"
-  var testDf = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv").withColumnRenamed(label, "label").na.drop().withColumn("label", $"label".cast("int"))
-  testDf.show()
+  var testDf = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv").withColumnRenamed(label, "label").withColumn("label", $"label".cast("int")).na.fill("NULL")
+  testDf.show(20)
 
   /**
     * +-----+----+----+----+----+----+----+----+----+---+---------+
@@ -35,12 +36,13 @@ object DTBinsTestCategories extends StaFlow with App {
   // 训练决策树模型
   val dt = new DecisionTreeClassifier().setLabelCol("label")
     .setFeaturesCol("features")
-    //    .setImpurity("entropy") //
+    //    .setImpurity("entropy") //树节点选择的不存度指标，取值为entroy/gini
     .setImpurity("gini") //
-    //    .setMaxBins(100) //离散化"连续特征"的最大划分数
+    //    .setMaxBins(100) //离散化"连续特征"的最大划分数，默认32，理论上分箱树越大粒度越细
     .setMaxDepth(4) //树的最大深度
+    //numTrees 随机盛林需要训练的树的个数
 
-    .setMinInfoGain(0.01) //一个节点分裂的最小信息增益，值为[0,1]
+//    .setMinInfoGain(0.01) //一个节点分裂的最小信息增益，值为[0,1]
     //    .setMinInstancesPerNode(10) //每个节点包含的最小样本数
     .setSeed(7)
 
@@ -58,11 +60,12 @@ object DTBinsTestCategories extends StaFlow with App {
     val assembler = new VectorAssembler().setInputCols(Array(f + "indexer")).setOutputCol("features")
 
     // 将索引标签转换回原始标签
-    val featureConverter = new IndexToString().setInputCol(f + "indexer").setOutputCol(f+"_new").setLabels(cateFeatureIndexer.labels)
+//    val featureConverter = new IndexToString().setInputCol(f + "indexer").setOutputCol(f+"_new").setLabels(cateFeatureIndexer.labels)
 
-    val pipeLine = new Pipeline().setStages(Array(cateFeatureIndexer,assembler, dt, featureConverter)).fit(testDf)
+    val pipeLine = new Pipeline().setStages(Array(cateFeatureIndexer,assembler, dt)).fit(testDf)
     println("pipeline----------")
-    pipeLine.transform(testDf).show()
+    val res = pipeLine.transform(testDf)
+    res.show()
     val treeModel = pipeLine.stages(2).asInstanceOf[DecisionTreeClassificationModel]
 
     println("features number = ",treeModel.numFeatures)
@@ -71,11 +74,19 @@ object DTBinsTestCategories extends StaFlow with App {
     /**
       * 分箱信息
       */
-    val binsArray = DTUtils.extractConBins(treeModel)
+//    val binsArray = DTUtils.extractConBins(treeModel)
     val binsCateArray = DTUtils.extractCateBins(treeModel)
-
-    println(binsArray.mkString(","))
+//
+//    println(binsArray.mkString(","))
     println(binsCateArray.mkString(","))
+
+//    val resBins = binsCateA transfer index2value
+    val resFinal = res.select(f, f+"indexer").where($"${f+"indexer"}".isin(binsCateArray:_*)).drop($"${f+"indexer"}").distinct()
+    //staDf.coalesce(200).withColumnRenamed(label, "label").selectExpr("label", s"${Tools.getStackParams(staCols: _*)} as (key_field_name, value)")
+    //df.select(concat_ws(separator, $"name", $"age", $"phone").cast(StringType).as("value")).show()
+    import org.apache.spark.sql.functions._
+   val fitV = resFinal.select(f).collect().map(x => x.getAs[String](0))
+
   }
 
   //训练数据集划分
