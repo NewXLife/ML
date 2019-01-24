@@ -42,13 +42,24 @@ object DTUtils {
   def extractCateBins(model: DecisionTreeClassificationModel): Array[Array[Double]] = {
     val splits = getSplits(model)
     var  tempSet = Set[Double]()
+    var maxIndex = 0d
     var points = mutable.ArrayBuffer[Array[Double]]()
     splits.map {
       case s: CategoricalSplit =>
+        if(maxIndex < s.leftCategories.max)
+          maxIndex = s.leftCategories.max
 //        var pointArray = Array[Double]()
         if(tempSet.nonEmpty){
           val ts = s.leftCategories.toSet & tempSet
-          if(ts.nonEmpty)
+          if(ts.nonEmpty){
+//            points.trimEnd(1)
+//            points += s.leftCategories
+            tempSet =  s.leftCategories.toSet
+          }
+          else{
+            points += s.leftCategories
+            tempSet =  s.leftCategories.toSet
+          }
         }else{
           tempSet =  s.leftCategories.toSet
           points += s.leftCategories
@@ -57,6 +68,9 @@ object DTUtils {
         println(s"type not constant+${one.featureIndex}")
         Array(-100.0d)
     }
+    val lastBins = (0 to maxIndex.toInt).map(_.toDouble).toSet
+   val finalBins =  lastBins  diff  points.flatten.toSet
+    points += finalBins.toArray
     points.toArray
   }
 

@@ -13,7 +13,8 @@ import scala.collection.mutable.ArrayBuffer
 object DTBinsTestCategories extends StaFlow with App {
   import spark.implicits._
   val label = "d14"
-  var testDf = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base4.csv").withColumnRenamed(label, "label").withColumn("label", $"label".cast("int")).na.fill("NULL")
+//  var testDf = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base4.csv").withColumnRenamed(label, "label").withColumn("label", $"label".cast("int")).na.fill("NULL")
+  var testDf = loadCSVData("csv", "D:\\NewX\\ML\\docs\\testData\\base4.csv").withColumnRenamed(label, "label").withColumn("label", $"label".cast("int")).na.fill("NULL")
   testDf.show(20)
 
   /**
