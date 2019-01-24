@@ -6,10 +6,14 @@ import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorAssemble
 import org.apache.spark.ml.tree._
 import org.apache.spark.sql.types.StringType
 
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
+
+
 object DTBinsTestCategories extends StaFlow with App {
   import spark.implicits._
   val label = "d14"
-  var testDf = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv").withColumnRenamed(label, "label").withColumn("label", $"label".cast("int")).na.fill("NULL")
+  var testDf = loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base4.csv").withColumnRenamed(label, "label").withColumn("label", $"label".cast("int")).na.fill("NULL")
   testDf.show(20)
 
   /**
@@ -24,8 +28,10 @@ object DTBinsTestCategories extends StaFlow with App {
     * use dt-tree all feature must be number
     */
   //dt统计特征数组
-  val features = Array("m60")
-//  val features = Array("m1", "m60")
+  val features = Array("extr","age")
+//  testDf.describe(features:_*).show()
+
+  //  val features = Array("m1", "m60")
   /**
     * +-----+----+---+----+----+----+----+----+----+---+---------+--------+
     * |label|day7| m1|  m3|  m6| m12| m18| m24| m60|age|       ad|features|
@@ -39,7 +45,7 @@ object DTBinsTestCategories extends StaFlow with App {
     //    .setImpurity("entropy") //树节点选择的不存度指标，取值为entroy/gini
     .setImpurity("gini") //
     //    .setMaxBins(100) //离散化"连续特征"的最大划分数，默认32，理论上分箱树越大粒度越细
-    .setMaxDepth(4) //树的最大深度
+    .setMaxDepth(5) //树的最大深度
     //numTrees 随机盛林需要训练的树的个数
 
 //    .setMinInfoGain(0.01) //一个节点分裂的最小信息增益，值为[0,1]
@@ -49,6 +55,7 @@ object DTBinsTestCategories extends StaFlow with App {
 
   // Index labels, adding metadata to the label column.
   // Fit on whole dataset to include all labels in index.
+  var binsMap: mutable.Map[String, Array[String]] = mutable.Map()
   for (f <- features) {
     println("feature============", f)
     //离散特征转为索引
@@ -75,20 +82,37 @@ object DTBinsTestCategories extends StaFlow with App {
       * 分箱信息
       */
 //    val binsArray = DTUtils.extractConBins(treeModel)
+//Array[Array[Double]]
     val binsCateArray = DTUtils.extractCateBins(treeModel)
-//
-//    println(binsArray.mkString(","))
-    println(binsCateArray.mkString(","))
+    val binsCateArray2 = DTUtils.extractCateBins2(treeModel)
+    //extractCateBins2
+    println("------------------11111111111111")
+    println(binsCateArray.map(x => x.mkString(",")).mkString(";"))
+    println("------------------2222222222222")
+    println(binsCateArray2.map(x => x.mkString(",")).mkString(";"))
+
+    var binsMapStr: mutable.Map[Int, ArrayBuffer[String]] = mutable.Map()
+    for(x <- binsCateArray.indices) binsMapStr += (x -> ArrayBuffer[String]())
 
 //    val resBins = binsCateA transfer index2value
-    val resFinal = res.select(f, f+"indexer").where($"${f+"indexer"}".isin(binsCateArray:_*)).drop($"${f+"indexer"}").distinct()
-    //staDf.coalesce(200).withColumnRenamed(label, "label").selectExpr("label", s"${Tools.getStackParams(staCols: _*)} as (key_field_name, value)")
-    //df.select(concat_ws(separator, $"name", $"age", $"phone").cast(StringType).as("value")).show()
-    import org.apache.spark.sql.functions._
-   val fitV = resFinal.select(f).collect().map(x => x.getAs[String](0))
+    val resFinal = res.select(f, f+"indexer").where($"${f+"indexer"}".isin(binsCateArray.flatten:_*)).distinct()
+    resFinal.show()
+   val fitV = resFinal.select(f+"indexer", f).collect().map(x => (x.getAs[Double](0), x.getAs[String](1)))
 
+
+    //(1.0,初中),(8.0,大),(3.0,高中),(7.0,中),(11.0,NULL),(6.0,小学),(5.0,研究生),(0.0,博士),(10.0,究生),(9.0,研),(4.0,高)
+
+    for(subStr <- fitV){
+      for(idx <- binsCateArray.indices if binsCateArray(idx).contains(subStr._1)) binsMapStr(idx) += subStr._2
+    }
+    println(binsMapStr.mkString(","))
+    //1 -> ArrayBuffer(大),0 -> ArrayBuffer(初中, 高中, 中, NULL, 小学, 研究生, 博士, 究生, 研, 高)
+//    val resArray = ArrayBuffer[String]()
+  val resArray =   for(subMap <- binsMapStr) yield subMap._2.mkString(",")
+    resArray.foreach(println(_))
+    binsMap += (f -> resArray.toArray)
   }
-
   //训练数据集划分
   //  val Array(trainData, testData) = vecDf.randomSplit(Array(0.7, 0.3))
+  println(binsMap.mapValues(x=>x.mkString("[", ";", "]")))
 }

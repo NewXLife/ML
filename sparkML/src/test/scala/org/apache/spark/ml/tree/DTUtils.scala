@@ -39,16 +39,43 @@ object DTUtils {
     * @param model
     * @return
     */
-  def extractCateBins(model: DecisionTreeClassificationModel): Array[Double] = {
+  def extractCateBins(model: DecisionTreeClassificationModel): Array[Array[Double]] = {
     val splits = getSplits(model)
-    val points = splits.map {
+    var  tempSet = Set[Double]()
+    var points = mutable.ArrayBuffer[Array[Double]]()
+    splits.map {
       case s: CategoricalSplit =>
-        s.leftCategories
+//        var pointArray = Array[Double]()
+        if(tempSet.nonEmpty){
+          val ts = s.leftCategories.toSet & tempSet
+          if(ts.nonEmpty)
+        }else{
+          tempSet =  s.leftCategories.toSet
+          points += s.leftCategories
+        }
       case one: Split =>
         println(s"type not constant+${one.featureIndex}")
         Array(-100.0d)
     }
-    points.flatten.sorted.toArray
+    points.toArray
+  }
+
+  /**
+    * Extract cate bins
+    *
+    * @param model
+    * @return
+    */
+  def extractCateBins2(model: DecisionTreeClassificationModel): Array[Array[Double]] = {
+    val splits = getSplits(model)
+    val points = splits.map {
+      case s: CategoricalSplit =>
+        s.rightCategories
+      case one: Split =>
+        println(s"type not constant+${one.featureIndex}")
+        Array(-100.0d)
+    }
+    points.toArray
   }
 
 
