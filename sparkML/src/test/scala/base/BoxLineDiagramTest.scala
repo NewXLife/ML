@@ -5,10 +5,20 @@ import org.apache.spark.sql.types.DoubleType
 import org.apache.spark.sql.{Column, DataFrame, Row}
 import util.{SparkTools, UserDefineFunction}
 
+
+import DataFrameExtensions._
+
 object BoxLineDiagramTest extends SparkTools {
   val sc = spark.sparkContext
   sc.setLogLevel("ERROR")
   val base = loadCSVData("csv", "C:\\NewX\\newX\\MachineLearning\\docs\\testData\\base.csv")
+  if(base.nonEmpty()){
+
+  }
+//  base.take(1).isEmpty
+//  base.head(1).isEmpty
+//  base.head().length
+//  base.first().length
   import spark.implicits._
 
   val staDate = "ad"

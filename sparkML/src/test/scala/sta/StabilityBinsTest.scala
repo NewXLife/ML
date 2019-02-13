@@ -84,7 +84,7 @@ object StabilityBinsTest extends App {
 
   val res2= res1.withColumn("sta_time_range", StaFlow.splitBinningString($"ad", $"sta_time_range"))
 
-   val res3 = StaFlow.useBinsDefinedBinsTemplate(res2, finalMap)
+   val res3 = StaFlow.useBinsCategoriesTemplate(res2, finalMap)
   res3.show(10, truncate = 0)
   res3.printSchema()
   /**

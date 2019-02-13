@@ -3,6 +3,7 @@ package sta
 import com.niuniuzcd.demo.util.DateUtils
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 
 import scala.collection.mutable.ArrayBuffer
@@ -23,12 +24,13 @@ class StaFlow extends Serializable {
   }
 
 
- implicit val spark = SparkSession.builder().appName("test-binning").master("local[*]").getOrCreate()
+  val spark = SparkSession.builder().appName("test-binning").master("local[*]").getOrCreate()
   spark.conf.set("spark.sql.inMemoryColumnarStorage.batchSize", 10000)
   spark.conf.set("spark.sql.default.parallelism", 100)
   spark.conf.set("spark.sql.shuffle.partitions", 20)
   spark.conf.set("spark.sql.inMemoryColumnarStorage.compressed", value = true)
   spark.sparkContext.setLogLevel("ERROR")
+  spark
 
   def loadCSVData(csv: String, filePath: String, hasHeader: Boolean = true) = {
     if (hasHeader) spark.read.format(csv).option("header", "true").load(filePath)
@@ -36,16 +38,25 @@ class StaFlow extends Serializable {
   }
 
   def row2ColDfContainsTimeCol(test: DataFrame, featureCols: Array[String], labelCol: String = "label", timeCol: String): DataFrame = {
-    test.withColumnRenamed(labelCol, "label").selectExpr("label", timeCol, s"${Tools.getStackParams(featureCols: _*)} as (key_field_name, value)").coalesce(100).cache()
+    val tools = new Tools()
+    test.withColumnRenamed(labelCol, "label").selectExpr("label", timeCol, s"${tools.getStackParams(featureCols: _*)} as (key_field_name, value)").coalesce(100).cache()
   }
 
   def row2ColDf(test: DataFrame, featureCols: Array[String], labelCol: String = "label"): DataFrame = {
     test.withColumnRenamed(labelCol, "label").selectExpr("label", s"${Tools.getStackParams(featureCols: _*)} as (key_field_name, value)").coalesce(100).cache()
   }
 
+  def String2String(df: DataFrame, colsArray: Array[String]): Try[DataFrame] = {
+    import org.apache.spark.sql.functions._
+    Try(df.select(colsArray.map(f => col(f).cast("string")): _*))
+  }
+
+
   def row2ColCrossDf(test: DataFrame, featureCols: Array[String], labelCol: String = "label"): DataFrame = {
-    val featureBin = featureCols.map(name => name + "_bin")
-    test.withColumnRenamed(labelCol, "label").selectExpr("label",featureBin(0),featureBin(1), s"${Tools.getStackParams(featureCols: _*)} as (key_field_name, value)").coalesce(100).cache()
+    import test.sparkSession.implicits._
+    val staCols = featureCols.map(x => x + "_bin")
+    val staDf = test.select($"$labelCol", $"${staCols(0)}", $"${staCols(1)}", $"${featureCols(0)}".cast(StringType), $"${featureCols(1)}".cast(StringType))
+    staDf.withColumnRenamed(labelCol, "label").selectExpr("label",staCols(0),staCols(1), s"${Tools.getStackParams(featureCols: _*)} as (key_field_name, value)").coalesce(100).cache()
   }
 
 
@@ -66,11 +77,25 @@ class StaFlow extends Serializable {
     )
   }
 
+  def binsInnerIndex: UserDefinedFunction = udf { (value: String, binsArray: Seq[Double]) =>
+    if (value != null && !value.equals("null") && !value.equals("NULL")) {
+      val r1 = scala.util.Try(value.toDouble)
+      val result = r1 match {
+        case Success(_) => searchIndex2(value.toDouble, binsArray.toArray)
+        case _ => -1
+      }
+      result
+    } else {
+      //空值子分箱索引号
+      -1
+    }
+  }
+
   def cutBins(df: DataFrame): DataFrame = {
     val cutObj = new BinningMethod
     df.withColumn("bin", udf { inputStr: String => {
       val doubleArray = inputStr.split(",").map(x => x.toDouble)
-      cutObj.cut(doubleArray.min, doubleArray.max, 10)
+      cutObj.innerCut(doubleArray.min, doubleArray.max, 10)
     }
     }.apply(col("tValue")))
   }
@@ -97,12 +122,13 @@ class StaFlow extends Serializable {
   }
 
   //StabilityBinsTest$
-  def splitCrossSubBin: UserDefinedFunction = udf { (value: String, binsArray: Seq[String]) =>
-    var res = ArrayBuffer("-99","(" + "missing-value" + ")")
+  def splitCrossSubBin: UserDefinedFunction = udf { (value: String, binsArray: String) =>
+    var res = "(" + "missing-value" + ")"
     if (value != null && !value.equals("null") && !value.equals("NULL")) {
       var resArray = ArrayBuffer[Double]()
       var resArrayStr = ArrayBuffer[String]()
-      for (subV <- binsArray) {
+      val binsStr = binsArray.split(",")
+      for (subV <- binsStr) {
         Try(subV.toDouble) match {
           case Success(_) =>
             resArray += subV.toDouble
@@ -116,25 +142,15 @@ class StaFlow extends Serializable {
         res = r1 match {
           case Success(_) =>
             val index = searchIndex2(value.toDouble, resArray.toArray)
-            ArrayBuffer(index.toString,"(" + resArray(index - 1).formatted("%.4f") + "," + resArray(index).formatted("%.4f") + "]")
+            "(" + resArray(index - 1).formatted("%.4f") + "," + resArray(index).formatted("%.4f") + "]"
           case _ =>
-            ArrayBuffer("-1", "(" + Double.NegativeInfinity + "," + Double.PositiveInfinity + ")")
+            "(" + Double.NegativeInfinity + "," + Double.PositiveInfinity + ")"
         }
       }
+
       if (resArrayStr.nonEmpty) {
         for (bins <- resArrayStr) {
-          val pattern = "[()\\[\\]]".r
-          val subArray = bins.split(",")
-          val start = pattern.replaceAllIn(subArray(0), "")
-          res = Try(start.toDouble) match {
-            case Success(_) =>
-              var end = start
-              if(subArray.size >1)
-                end = pattern.replaceAllIn(subArray(1), "")
-              if(value.toDouble == start.toDouble || value.toDouble == end.toDouble) ArrayBuffer((resArrayStr.indexOf(bins)+1).toString,bins) else res
-            case _ =>
-              if (bins.contains(value)) ArrayBuffer((resArrayStr.indexOf(bins)+1).toString,bins) else res
-          }
+          res = if (bins.contains(value)) bins else res
         }
       }
     }
@@ -145,8 +161,8 @@ class StaFlow extends Serializable {
   def splitStabilitySubBinBinning: UserDefinedFunction = udf { (value: String, binsArray: Seq[String]) =>
     var res = "(" + "missing-value" + ")"
     if (value != null && !value.equals("null") && !value.equals("NULL")) {
-      val pattern = "[()\\[\\]\"]".r
-      for (bins <- binsArray) {
+      val pattern = "[()\\[\\]]".r
+      for (bins <- binsArray if binsArray != null && binsArray.nonEmpty) {
         val subArray = bins.split(",")
         val start = pattern.replaceAllIn(subArray(0), "")
         res = Try(start.toDouble) match {
@@ -202,13 +218,14 @@ class StaFlow extends Serializable {
 
   def filterSpecialChar(str: String): String = {
     //    val pattern = "[`~!@#$%^&*()+=|{}':;'\\[\\]<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。、？]".r
-    val pattern = "[`~!@#$%^&*()+=|{}':'\\<>/?~！@#￥%……&*（）——+|{}【】‘；：\"”“’。、？]".r
+    val pattern = "[()]".r
     pattern replaceAllIn(str, "")
   }
 
 
   def categoriesDefinedBin: UserDefinedFunction = udf { (value: String, bins: Seq[String]) =>
-    if (value != null && value.toLowerCase != "null") {
+    if (value != null) {
+      //    if (value != null && value.toLowerCase != "null") {
       val res = for (bin <- bins.toArray if bin.contains(value)) yield bin
       res.mkString(",")
     }
@@ -227,10 +244,10 @@ class StaFlow extends Serializable {
   def binsIndexExcludeMinMaxDF(binsDF: DataFrame): DataFrame = {
     import binsDF.sparkSession.implicits._
     binsDF.groupBy("key_field_name", "bin").agg(
-      count("value").as("binSamples"),
+      count("*").as("binSamples"),
       sum(when($"label" > 0, 1).otherwise(0)).as("overdueCount"),
       sum(when($"label" === 0, 1).otherwise(0)).as("notOverdueCount"),
-      (sum(when($"label" > 0, 1).otherwise(0)).as("overdueCount") / count("value").as("binSamples")).as("overdueCountPercent")
+      (sum(when($"label" > 0, 1).otherwise(0)).as("overdueCount") / count("*").as("binSamples")).as("overdueCountPercent")
     )
   }
 
@@ -270,16 +287,15 @@ class StaFlow extends Serializable {
     import binsDF.sparkSession.implicits._
     binsDF.groupBy(groupyCols:_*).agg(
       count("value").as("binSamples"),
-      max("key_field_name").as("key_field_name"),
       sum(when($"label" > 0, 1).otherwise(0)).as("overdueCount"),
       sum(when($"label" === 0, 1).otherwise(0)).as("notOverdueCount"),
       (sum(when($"label" > 0, 1).otherwise(0)).as("overdueCount") / count("value").as("binSamples")).as("overdueCountPercent")
     )
   }
 
-  def totalIndexCross(row2ColBinsArrayDF: DataFrame): DataFrame = {
+  def totalIndexCross(row2ColBinsArrayDF: DataFrame, cols:Array[Column]): DataFrame = {
     import row2ColBinsArrayDF.sparkSession.implicits._
-    row2ColBinsArrayDF.groupBy("key_field_name").agg(
+    row2ColBinsArrayDF.groupBy(cols:_*).agg(
       count("value").as("totalSamples"),
       sum(when($"label" > 0, 1).otherwise(0)).as("totalOverdue"),
       sum(when($"label" === 0, 1).otherwise(0)).as("totalNotOverdue"),
@@ -291,27 +307,11 @@ class StaFlow extends Serializable {
   def totalIndexDF(row2ColBinsArrayDF: DataFrame): DataFrame = {
     import row2ColBinsArrayDF.sparkSession.implicits._
     row2ColBinsArrayDF.groupBy("key_field_name").agg(
-      count("value").as("totalSamples"),
+      count("*").as("totalSamples"),
       sum(when($"label" > 0, 1).otherwise(0)).as("totalOverdue"),
       sum(when($"label" === 0, 1).otherwise(0)).as("totalNotOverdue"),
-      (sum(when($"label" > 0, 1).otherwise(0)).as("totalOverdue") / sum(when($"label" === 0, 1).otherwise(0)).as("totalNotOverdue")).as("totalOverduePercent")
+      (sum(when($"label" > 0, 1).otherwise(0)) / count("*")).as("totalOverduePercent")
     )
-  }
-
-  def binsDFJoinMasterDFCross(binDF: DataFrame, masterDF: DataFrame, featureBinNameArray: Array[String]): DataFrame = {
-    binDF.createOrReplaceTempView("bins")
-    masterDF.createOrReplaceTempView("master")
-    spark.sql(
-      s"""
-        |select
-        |${featureBinNameArray(0)},
-        |${featureBinNameArray(1)},
-        |binSamples as bins_sample_count,
-        |(binSamples / totalSamples) as bins_sample_ratio,
-        |overdueCount as overdue_count,
-        |overdueCountPercent as overdue_count_ratio
-        |from bins left join master on bins.key_field_name = master.key_field_name
-      """.stripMargin)
   }
 
   def binsExcludeMinMaxTimeRangeIndex(binsDF: DataFrame, masterDF: DataFrame): DataFrame = {
@@ -329,6 +329,24 @@ class StaFlow extends Serializable {
         |overdueCountPercent as overdue_count_ratio,
         |(overdueCountPercent / totalOverduePercent) as lift
         |from bins left join master on bins.key_field_name = master.key_field_name
+      """.stripMargin)
+  }
+
+  def binsStabilityExcludeMinMaxTimeRangeIndex(binsDF: DataFrame, masterDF: DataFrame): DataFrame = {
+    binsDF.createOrReplaceTempView("bins")
+    masterDF.createOrReplaceTempView("master")
+    spark.sql(
+      """
+        |select
+        |bins.key_field_name as key_field_name,
+        |bin,
+        |bins.sta_time_range as sta_time_range,
+        |binSamples as bins_sample_count,
+        |(binSamples / totalSamples) as bins_sample_ratio,
+        |overdueCount as overdue_count,
+        |overdueCountPercent as overdue_count_ratio,
+        |(overdueCountPercent / totalOverduePercent) as lift
+        |from bins left join master on bins.key_field_name = master.key_field_name and bins.sta_time_range = master.sta_time_range
       """.stripMargin)
   }
 
@@ -380,7 +398,7 @@ class StaFlow extends Serializable {
       sum("bins_sample_count").as("bins_sample_count"),
       lit(1).as("bins_sample_ratio"),
       sum("overdue_count").as("overdue_count"),
-      sum("overdue_count_ratio").as("overdue_count_ratio"),
+      (sum("overdue_count") / sum("bins_sample_count")).as("overdue_count_ratio"),
       lit(100).as("lift"),
       lit(0).as("woe"),
       sum("iv").as("iv")
@@ -415,9 +433,9 @@ class StaFlow extends Serializable {
     }.apply(col(applyCol)))
   }
 
-  def useBinsDefinedBinsTemplate(df: DataFrame, binsMap: Map[String, Array[String]], newCol: String = "bins", applyCol: String = "key_field_name"): DataFrame = {
+  def useBinsDefinedBinsTemplate(df: DataFrame, binsMap: Map[String, String], newCol: String = "bins", applyCol: String = "key_field_name"): DataFrame = {
     df.withColumn(newCol, udf { f: String =>
-      binsMap.filter { case (key, _) => key.equals(f) }.map { case (_, v) => v }.toSeq.flatten.toArray
+      binsMap.filter { case (key, _) => key.equals(f) }.map { case (_, v) => v }.toSeq.toArray
     }.apply(col(applyCol)))
   }
 }

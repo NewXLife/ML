@@ -1,16 +1,22 @@
 package org.apache.spark.ml.tree
 
 import org.apache.spark.ml.classification.DecisionTreeClassificationModel
-import org.apache.spark.ml.param.DoubleArrayParam
 
 import scala.collection.mutable
-object DTUtils {
+
+/**
+  * Spark tree utils  for rule extraction and bins
+  *
+  * @author Hou Lu
+  * @version 1.0, 2018/12/12
+  */
+object TreeUtils extends Serializable {
   /**
     * Extract path
     *
     * @param model
     */
-  def extractPath(model: DecisionTreeClassificationModel): DoubleArrayParam = {
+  def extractPath(model: DecisionTreeClassificationModel) = {
     model.thresholds
   }
 
@@ -52,14 +58,14 @@ object DTUtils {
           val ts = s.leftCategories.toSet & tempSet
           if(ts.nonEmpty){
             points += (s.leftCategories.toSet -- tempSet).toArray
-            tempSet ++=  s.leftCategories.toSet
+            tempSet =  s.leftCategories.toSet
           }
           else{
             points += s.leftCategories
-            tempSet ++=  s.leftCategories.toSet
+            tempSet =  s.leftCategories.toSet
           }
         }else{
-          tempSet ++=  s.leftCategories.toSet
+          tempSet =  s.leftCategories.toSet
           points += s.leftCategories
         }
       case one: Split =>
@@ -67,33 +73,15 @@ object DTUtils {
         Array(-100.0d)
     }
     val lastBins = (0 to maxIndex.toInt).map(_.toDouble).toSet
-   val finalBins =  lastBins  diff  points.flatten.toSet
+    val finalBins =  lastBins  diff  points.flatten.toSet
     points += finalBins.toArray
-    points.toArray
-  }
-
-  /**
-    * Extract cate bins
-    *
-    * @param model
-    * @return
-    */
-  def extractCateBins2(model: DecisionTreeClassificationModel): Array[Array[Double]] = {
-    val splits = getSplits(model)
-    val points = splits.map {
-      case s: CategoricalSplit =>
-        s.rightCategories
-      case one: Split =>
-        println(s"type not constant+${one.featureIndex}")
-        Array(-100.0d)
-    }
     points.toArray
   }
 
 
   val init = (Double.MaxValue, null.asInstanceOf[Array[Double]], Double.MinValue)
 
-  def extractBinInfo(model: DecisionTreeClassificationModel): mutable.Buffer[BinInfo] = {
+  def extractBinInfo(model: DecisionTreeClassificationModel) = {
     val binInfos: mutable.Seq[Either[Split, Array[Double]]] = getInfo(model)
     val bins = mutable.Buffer[BinInfo]()
 
@@ -111,7 +99,7 @@ object DTUtils {
 
       val one = iter.next()
       one match {
-        case Left(l) =>
+        case Left(l) => {
           val sp = l match {
             case s: ContinuousSplit => {
               val point: Double = s.threshold
@@ -123,11 +111,14 @@ object DTUtils {
           } else if (tmp.top == Double.MinValue) {
             tmp.top = sp
           }
-        case Right(r) =>
+
+        }
+        case Right(r) => {
           tmp.leaf = r
           if (tmp.bot == Double.MaxValue) {
             tmp.bot = Double.MinValue
           }
+        }
       }
     }
 
@@ -140,7 +131,7 @@ object DTUtils {
     bins
   }
 
-  def extractCateBinInfo(model: DecisionTreeClassificationModel): mutable.Buffer[BinInfo] = {
+  def extractCateBinInfo(model: DecisionTreeClassificationModel) = {
     val binInfos: mutable.Seq[Either[Split, Array[Double]]] = getInfo(model)
     val bins = mutable.Buffer[BinInfo]()
 
@@ -158,22 +149,26 @@ object DTUtils {
 
       val one = iter.next()
       one match {
-        case Left(l) =>
+        case Left(l) => {
           val sp = l match {
-            case s: ContinuousSplit =>
+            case s: ContinuousSplit => {
               val point: Double = s.threshold
               point
+            }
           }
           if (tmp.bot == Double.MaxValue) {
             tmp.bot = sp
           } else if (tmp.top == Double.MinValue) {
             tmp.top = sp
           }
-        case Right(r) =>
+
+        }
+        case Right(r) => {
           tmp.leaf = r
           if (tmp.bot == Double.MaxValue) {
             tmp.bot = Double.MinValue
           }
+        }
       }
     }
     if (tmp.leaf != null) {
@@ -194,7 +189,7 @@ object DTUtils {
     * @param model
     * @return
     */
-  private[tree] def getSplits(model: DecisionTreeClassificationModel): mutable.Seq[Split] = {
+  private[tree] def getSplits(model: DecisionTreeClassificationModel) = {
     val buf = mutable.Buffer[Split]()
     recursiveExtraSplits(model.rootNode, buf)
     buf
@@ -210,22 +205,23 @@ object DTUtils {
       return
     }
     node match {
-      case node: InternalNode =>
+      case node: InternalNode => {
+
         val left = node.leftChild
         if (left != null) {
           recursiveExtraSplits(left, buf)
         }
-
         buf.append(node.split)
-
-        val right = node.rightChild
-        if (right != null) {
-          recursiveExtraSplits(right, buf)
+        if (node.rightChild != null) {
+          recursiveExtraSplits(node.rightChild, buf)
         }
-
-      case leaf: LeafNode =>
+      }
+      case leaf: LeafNode => {
         println(s"Can not recognized node type!+${leaf.getClass.toString}")
+      }
     }
+
+
   }
 
 
@@ -235,7 +231,7 @@ object DTUtils {
     * @param model
     * @return
     */
-  private[tree] def getInfo(model: DecisionTreeClassificationModel): mutable.Seq[Either[Split, Array[Double]]] = {
+  private[tree] def getInfo(model: DecisionTreeClassificationModel) = {
     val buf = mutable.Buffer[Either[Split, Array[Double]]]()
     recursiveExtraInfo(model.rootNode, buf)
     buf
@@ -249,7 +245,8 @@ object DTUtils {
     */
   private[tree] def recursiveExtraInfo(node: Node, buf: mutable.Buffer[Either[Split, Array[Double]]]): Unit = {
     node match {
-      case node: InternalNode =>
+      case node: InternalNode => {
+
         val left = node.leftChild
         if (left != null) {
           recursiveExtraInfo(left, buf)
@@ -258,8 +255,10 @@ object DTUtils {
         if (node.rightChild != null) {
           recursiveExtraInfo(node.rightChild, buf)
         }
-      case leaf: LeafNode =>
+      }
+      case leaf: LeafNode => {
         buf.append(Right(leaf.impurityStats.stats))
+      }
     }
   }
 
@@ -267,5 +266,10 @@ object DTUtils {
 
   case class BinInfo(range: (Double, Double), hitInfo: Array[Double])
 
-  implicit def tupleToBin(db: (Double, Array[Double], Double)): BinTmpInfo = BinTmpInfo(db._1, db._2, db._3)
+  //  case class cateBinInfo(override val range: Set[Double], override val hitInfo: Array[Double]) extends BinInfo(range = null, hitInfo) {}
+
+
+  implicit def tupleToBin(db: (Double, Array[Double], Double)) = BinTmpInfo(db._1, db._2, db._3)
+
+
 }

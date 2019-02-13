@@ -82,7 +82,7 @@ val testcols = "day7,m1,m3,m6,m12,m18,m24,m60,test"
 
     val binsArrayDF = tempDf.withColumn("bins", udf{ inputStr:String => {
       val doubleArray = inputStr.split(",").map( x=> x.toDouble)
-      cutObj.cut(doubleArray.min,doubleArray.max, 5)
+      cutObj.cutMain(doubleArray.min,doubleArray.max,10)
     }}.apply(col("bins")))
 
   binsArrayDF.show()

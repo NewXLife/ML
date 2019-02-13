@@ -5,16 +5,19 @@ import sta.StaFlow
 /**
   * spark 中的DataFrame na 填充,如果填充是数字类型，则对字符类型无效；如果填充字符串则对数字类型无效
   * na.drop 会删除所有列中包含null的
-  * 测试的目的是在交叉分析的时候出现null 值为填充的情况，原因就是数字类型和字符串类型都有null值，需要分区处理
+  * 测试的目的是在交叉分析的时候出现null 值为填充的情况，原因就是数字类型和字符串类型都有null值，需要分别处理
   */
 object SparkDataFrameNaFill extends App{
   val spark = StaFlow.spark
-  import org.apache.spark.sql.functions._
   import spark.implicits._
 
   var test = StaFlow.loadCSVData("csv", "C:\\NewX\\newX\\ML\\docs\\testData\\base3.csv").withColumn("m1", $"m1".cast("int"))
   test.printSchema()
   test.show()
+  val max = test.describe("ad").where($"summary" === "max").first().getAs[String](1)
+  val min = test.describe("ad").where($"summary" === "min").first().getAs[String](1)
+  println("max:", max)
+  println("min:", min)
   /**
     * +---+----+----+----+----+----+----+----+----+---+---------+
     * |d14|day7|  m1|  m3|  m6| m12| m18| m24| m60|age|       ad|
