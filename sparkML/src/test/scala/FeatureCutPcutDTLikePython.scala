@@ -6,11 +6,37 @@ import scala.collection.mutable.ArrayBuffer
   * create by colin on 2018/7/12
   */
 object FeatureCutPcutDTLikePython extends App {
-  val spark = SparkSession.builder().appName("test-ds").master("local[*]").getOrCreate()
-  //          Logger.getLogger("org.apache.spark").setLevel(Level.ERROR)
-  spark.sparkContext.setLogLevel("ERROR")
-  val df = spark.createDataFrame(Seq((0, "1", "2", 3, 0.3), (1, "", "2", 13, 0.2), (2, "1", "2", 13, 0.2), (3, "1", "2", 23, 0.2), (4, "1", "2", 31, 0.5), (5, "1", "2", 35, 0.7), (0, "1", "2", 36, 0.5), (0, "1", "2", 39, 0.9)))
-    .toDF("id", "age", "name", "score", "mu")
+
+//  class Creature{
+//     val range :Int = 10
+//    val env: Array[Int] = new Array[Int](range)
+//  }
+//
+//  class Ant extends {override val range = 2} with Creature
+//
+//
+//  def foo(x: => Int => Int, y: Int) =  x(y)
+//
+//  def s1(x: Int) = x * x
+//  foo(s1, 3)
+//
+//  val t = new Ant
+
+
+//  val spark = SparkSession.builder().appName("test-ds").master("local[*]").getOrCreate()
+//  //          Logger.getLogger("org.apache.spark").setLevel(Level.ERROR)
+//  spark.sparkContext.setLogLevel("ERROR")
+//  val df = spark.createDataFrame(Seq((0, "1", "2", 3, 0.3), (1, "", "2", 13, 0.2), (2, "1", "2", 13, 0.2), (3, "1", "2", 23, 0.2), (4, "1", "2", 31, 0.5), (5, "1", "2", 35, 0.7), (0, "1", "2", 36, 0.5), (0, "1", "2", 39, 0.9)))
+//    .toDF("id", "age", "name", "score", "mu").coalesce(2)
+//
+//  df.cache()
+//
+//  val res = df.count()
+//
+//  while (true){
+//    ;
+//  }
+//  spark.stop()
 
   //  val data = Array((0, "1"), (1,"3"), (2, "2"), (3, "4"),(4, "5"))
   //  val df1 = spark.createDataFrame(data).toDF("id","features")
@@ -21,7 +47,7 @@ object FeatureCutPcutDTLikePython extends App {
   //
   //  for (i <- t) println(i)
 
-  qcut(df, 5)
+//  qcut(df, 5)
 
   // -0.001
   //1.0

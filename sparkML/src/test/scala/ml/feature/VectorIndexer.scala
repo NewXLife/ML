@@ -63,6 +63,12 @@ object VectorIndexer extends SparkTools {
   val indexDate = featureIndexer.transform(vDf)
   indexDate.show(10, truncate = false)
 
+  /**
+    * VectorSlicer是一个切片工具，和VectorAssembler相对应，它的作用就是将一个向量切片，选择向量的子集。它提供了两种切片方式
+    * setIndices(), 按照向量的下标索引切片（从0开始）
+    * setNames()，按照列名切片
+    * slicer.setIndices(Array(1)).setNames(Array("f3"))
+    */
   val slicer = new VectorSlicer()
     .setInputCol("indexFeatures")
     .setOutputCol("slicerFeatures")

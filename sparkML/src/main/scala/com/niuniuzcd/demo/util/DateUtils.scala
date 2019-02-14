@@ -3,14 +3,101 @@ package com.niuniuzcd.demo.util
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
   * create by colin on 2018/7/16
   */
-object DataUtils extends App {
+class DateUtils {
   lazy val cal: Calendar = Calendar.getInstance()
 
 
   val commDateFormat: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+
+  final val DAY_DATE_FORMAT_ONE = "yyyy-MM-dd"
+  final val SECOND_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss"
+  final val DAY_DATE_FORMAT_TWO = "yyyyMMdd"
+  final val DAY_DATE_FORMAT_THREE = "yyyy/MM/dd"
+  final val DAY_DATE_FORMAT_FOUR = "yyyy-MM-dd HH"
+
+  val f1 = new SimpleDateFormat(DAY_DATE_FORMAT_ONE)
+  val f2 = new SimpleDateFormat(DAY_DATE_FORMAT_TWO)
+  val f3 = new SimpleDateFormat(DAY_DATE_FORMAT_THREE)
+  val f4 = new SimpleDateFormat(SECOND_DATE_FORMAT)
+  val f5 = new SimpleDateFormat(DAY_DATE_FORMAT_FOUR)
+
+  val dateFiled = Calendar.DAY_OF_MONTH
+
+  //spark.sqlContext.udf.register("timeFormat", timeFormat)
+  val timeFormat = (y: Any) => {
+    val x = y.toString
+    x.length match {
+      case 8 if !x.contains("/") =>
+        f1.format(f2.parse(x))
+      case 9 if x.contains("/") =>
+        f1.format(f3.parse(x))
+      case 10 if x.contains("/") =>
+        f1.format(f3.parse(x))
+      case 10 if x.contains("-") =>
+        f1.format(f1.parse(x))
+      case 13 =>
+        f1.format(f5.parse(x))
+      case 19 =>
+        f1.format(f4.parse(x))
+      case _ if x.length > 19 =>
+        f1.format(f4.parse(x))
+      case _ =>
+        x
+    }
+  }
+
+  val timeFormat2 = (y: Any) => {
+    val x = y.toString
+    x.length match {
+      case 8 if !x.contains("/") =>
+        f1.parse(f1.format(f2.parse(x)))
+      case 9 if x.contains("/") =>
+        f1.parse(f1.format(f3.parse(x)))
+      case 10 if x.contains("/") =>
+        f1.parse(f1.format(f3.parse(x)))
+      case 10 if x.contains("-") =>
+        f1.parse(f1.format(f1.parse(x)))
+      case 13 =>
+        f1.parse(f1.format(f5.parse(x)))
+      case 19 =>
+        f1.parse(f1.format(f4.parse(x)))
+      case _ if x.length > 19 =>
+        f1.parse(f1.format(f4.parse(x)))
+      case _ =>
+        f1.parse(x)
+    }
+  }
+
+  def getTimeRangeArray(begin: Date, endDate: Date, timeInter:Int = 1) = {
+    cal.setTime(begin)
+    var beginDate = begin
+    val dateArray: ArrayBuffer[String] = ArrayBuffer()
+    while (beginDate.compareTo(endDate) <= 0) {
+      dateArray += f1.format(beginDate)
+      cal.add(dateFiled, timeInter)
+      beginDate = cal.getTime
+    }
+    dateArray :+ f1.format(endDate)
+  }
+
+
+  /**
+    * get some days before
+    *
+    * @param days
+    * @return
+    */
+  def getSomeDateAfter(inputStr: String, days: Int): String = {
+    val startDate = f1.parse(inputStr)
+    cal.setTime(startDate)
+    cal.add(Calendar.DATE, days)
+    f1.format(cal.getTime)
+  }
 
   /**
     * get current days before
@@ -164,3 +251,5 @@ object DataUtils extends App {
     df.format(cal.getTime)
   }
 }
+
+object  DateUtils extends  DateUtils
