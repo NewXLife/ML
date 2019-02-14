@@ -1,4 +1,4 @@
-package com.niuniuzcd.demo.ml.evaluation
+package com.niuniuzcd.demo.ml.evaluator
 
 object ModelS {
   val XGBClassifier =  "XGBClassifier"

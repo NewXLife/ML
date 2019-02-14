@@ -70,7 +70,5 @@ object FeatureBasicStatics extends App {
     }
   }
 
-
-
 }
 

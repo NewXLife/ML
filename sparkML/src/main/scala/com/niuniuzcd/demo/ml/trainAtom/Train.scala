@@ -1,7 +1,5 @@
 package com.niuniuzcd.demo.ml.trainAtom
 
-import org.apache.spark.sql.DataFrame
-
 private[trainAtom] trait Train extends Serializable{
   object TrainComponents {
     abstract class Component(val name: String) {

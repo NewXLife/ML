@@ -71,7 +71,7 @@ object TestTrainJob extends SparkTools {
   pipeline(baseDf.withColumnRenamed("d14", "label"))
 
   //notice:version need spark2.3+
-  val model = store.get(CC.trainer).get.XGBModel
+  val model = store.get(CC.trainer).get.Model
   val test = store.get(CC.spliter).get.test
 
   //transfer test-data
