@@ -36,6 +36,7 @@ class ImplicitTest extends FunSuite {
     def add(implicit a: Int, b: Int): Int = a + b
 
     println(add) //20 ；a, b都被隐式转换为10
+    //显示调用
     println(add(3, 4)) //7
 
     def richAdd(a: Int)(implicit aa: Int, bb: Int) = a + aa + bb
@@ -46,9 +47,10 @@ class ImplicitTest extends FunSuite {
     def plus(a: Int)(implicit b: Int): Int = a + b
 
     println(plus(3)) //缺省的时候用隐式值  //13
+    //显示调用
     println(plus(3)(4)) // 7
 
-    //  单元测试
+    //单元测试
     println(plus(3))
     assertResult(plus(5))(15)
     assert(plus(5)(15) === 20)
@@ -56,6 +58,7 @@ class ImplicitTest extends FunSuite {
 
 
     case class Delimiters(left: String, right: String)
+    implicit val defaultDeli: Delimiters = Delimiters("->", "<-")
 
     def quote(str: String)(implicit delims: Delimiters) = {
       delims.left + str + delims.right
@@ -68,15 +71,11 @@ class ImplicitTest extends FunSuite {
     //implicit val t: Delimiters = Delimiters("(",")")
 
     //    @implicitNotFound(msg = "cannot found ")
-    object FrenchFunction {
-      implicit val t: Delimiters = Delimiters("(", ")")
-    }
 
     val c1 = "a".map(_.toString)
     val c2 = "a".map(_.toInt)
     println(c1.getClass.getSimpleName)
     println(c2.getClass.getSimpleName)
-    import FrenchFunction._
     val res2 = quote("test2") //省略隐式参数列表,编译器将会从两个地方查找这样的对象
     //当前作用域所有可以用单个标识符指代的，满足类型要求的val 和def
     //所要求的类型的伴生对象，或者关联类型包含类型本身，以及它的类型参数
@@ -123,39 +122,45 @@ class ImplicitTest extends FunSuite {
       }
     }
 
-    //new Pair(40,2) 编译器推断出我们需要一个Pair[Int]，
+    //new Pair(40,2) 编译器推断出我们需要一个Pair[Int]，由于predef 作用域中有一个类型为Ordering[Int]的隐式值，一次Int满足上下文界定。
+    //这个Ordering[Int]就成为该类的一个字段，被传入到该值的方法中。
     val p = new Pair(40, 2).smaller2
     val p1 = new Pair(40, 2).testSmaller
     val p2 = new Pair(40, 2).test2Smaller(Ordering[Int])
 
     //e.g
-    trait Monoid[A]{
-      def mappend(a: A, b: A) : A
+    trait Monoid[A] {
+      def mappend(a: A, b: A): A
+
       def mzero: A
     }
-    object Monoid{
-      implicit val intMonoid: Monoid[Int] =new Monoid[Int]{
+    object Monoid {
+      implicit val intMonoid: Monoid[Int] = new Monoid[Int] {
         def mappend(a: Int, b: Int): Int = a + b
+
         def mzero: Int = 0
       }
-      implicit val strMonoid: Monoid[String] =new Monoid[String]{
+      implicit val strMonoid: Monoid[String] = new Monoid[String] {
         def mappend(a: String, b: String): String = a + b
+
         def mzero: String = ""
       }
     }
 
     def sumMonoid[A](xs: List[A], a: Monoid[A]) = xs.foldRight(a.mzero)(a.mappend)
+
     // next
     def sumMonoid2[A](xs: List[A])(implicit a: Monoid[A]) = {
       xs.foldRight(a.mzero)(a.mappend)
     }
+
     // next
     def sumMonoid3[A: Monoid](xs: List[A]) = {
       val m = implicitly[Monoid[A]]
       xs.foldRight(m.mzero)(m.mappend)
     }
 
-    val testList = List(1,2,3,4)
+    val testList = List(1, 2, 3, 4)
     val testList2 = List("hello", "c", "java")
     println(sumMonoid3(testList)) //作用域查找是否存在Monoid[A]的隐式值，在伴生对象中找到了，因此存在
     println(sumMonoid3(testList2))
@@ -190,13 +195,11 @@ class ImplicitTest extends FunSuite {
     //step1:定义一个拥有丰富的方法的类型
     class RichNumbers(val t: Int) {
       def plus(a: Int, b: Int): Int = a + b
-
       def minus(a: Int, b: Int): Int = a - b
     }
 
     object RichNumbers {
       def apply(t: Int): RichNumbers = new RichNumbers(t)
-
       //step2:提供一个隐式转换将原来的类型转换为新的类型
       implicit def int2r(a: Int): RichNumbers = new RichNumbers(a)
     }
@@ -213,6 +216,13 @@ class ImplicitTest extends FunSuite {
     val temp1 = 10.plus(1, 2)
     assert(temp === 9)
     assert(temp1 === 3)
+  }
+
+  test("type prove"){
+    // T =:= U  T等于U
+    // T <:< U  T是否是U的子类
+    // T <%< U  T可以被隐式转换U
+//    def firstLast[T, U](it: T)
   }
 
   test("string2double") {

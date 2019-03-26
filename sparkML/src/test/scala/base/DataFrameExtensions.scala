@@ -16,6 +16,6 @@ object DataFrameExtensions {
       }
     }
 
-    def nonEmpty(): Boolean = !isEmpty
+    def nonEmpty: Boolean = !isEmpty
   }
 }
