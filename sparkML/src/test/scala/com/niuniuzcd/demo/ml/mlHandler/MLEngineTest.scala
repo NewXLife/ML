@@ -7,7 +7,7 @@ import org.scalatest.FunSuite
   */
 class MLEngineTest extends FunSuite {
   //定义一个柯里函数
-  def withCallBack[T, U](name: String, test: T)(action: T => U) = {
+  def withCallBack[T, U](name: String, test: T)(action: T => U): U = {
     try {
       action(test)
     } catch {
@@ -34,7 +34,7 @@ class MLEngineTest extends FunSuite {
     sum
   }
 
-  def countTest(str: String*) = withCallBack("count", reStr(str: _*))(input => "<<" + input + ">>")
+  def countTest(str: String*): String = withCallBack("count", reStr(str: _*))(input => "<<" + input + ">>")
 
-  def countTest2(number: Int*) = withCallBack("count", reInteger(number: _*))(input => input * 2)
+  def countTest2(number: Int*): Int = withCallBack("count", reInteger(number: _*))(input => input * 2)
 }

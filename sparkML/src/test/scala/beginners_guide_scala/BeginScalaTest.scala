@@ -7,33 +7,69 @@ import scala.io.Source
   * apply and unapply
   * apply 构建实例  unapply提取器（一般放到伴生对象）
   */
-
 trait User {
   def name: String
 }
 
 class Auser(val name: String, val score: Int, val upgrade: Double) extends User
-
+case class TTUser(name: String)
+/**
+  * 伴生对象中
+  */
 object Auser {
   def unapply(arg: Auser): Option[(String, Int, Double)] = Some((arg.name, arg.score, arg.upgrade))
 }
 
 class Buser(val name: String, val score: Int, val upgrade: Double) extends User
-
 object Buser {
   def apply(name: String, score: Int, upgrade: Double) = new Buser(name, score, upgrade)
   def unapply(arg: Buser): Option[(String, Int, Double)] = Some((arg.name, arg.score, arg.upgrade))
 }
 
-/**
-  *
-  */
+
 object UnApplyTest extends App {
   val user: User = new Auser("test", 10, 10.0)
   user match {
     case Auser(n, _, _) => if (n.equals("test")) s"name:$n" else "hello, name mismatch"
     case Buser(n, _, _) => s"hello Buser $n"
   }
+
+  /**模式匹配变量绑定**/
+  val user1: TTUser = TTUser("hello")
+  user1 match {
+    case  a @ TTUser("hello") => println(a.name)
+    case b @ TTUser("java") => println(b.name)
+  }
+
+  val xs = 3 :: 6 :: 12 :: 24 :: Nil
+  xs match {
+    case List(a, b, _*) => a * b
+    case _ => 0
+  }
+
+  //
+  if(xs.forall(_.isNaN)) None else Some(xs)
+
+  /**
+    * for语句中的模式匹配
+    */
+  val lists = List(1, 2, 3) :: List.empty :: List(5, 3) :: Nil
+  val rest =  for {
+    /**
+      * 过滤非空列表
+      */
+    list @ head :: _ <- lists
+  } yield list.size
+
+
+  def gameResults(): Seq[(String, Int)] =
+    ("Daniel", 3500) :: ("Melissa", 13000) :: ("John", 7000) :: Nil
+  def hallOfFame = for {
+    result <- gameResults()
+    (name, score) = result
+    if score > 5000
+  } yield name
+
 
   /**
     * 函数式的责任链
@@ -65,6 +101,7 @@ object UnApplyTest extends App {
 
   val tuser = TUser("test", 10, None)
   println(tuser.gender.getOrElse(""))
+
 
   //使用模式匹配处理Option
   //现用模式匹配处理Option实例是非常啰嗦的
