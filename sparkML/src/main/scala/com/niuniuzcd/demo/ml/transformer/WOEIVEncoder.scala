@@ -92,29 +92,29 @@ class WOEIVEncoder(diff_thr: Int, woe_min: Int, woe_max: Int, nan_thr: Double, i
   }
 
 
-  @deprecated
-  def woe(x: DataFrame, y: DataFrame, woe_min: Int = 0, woe_max: Int) = {
-    import x.sparkSession.implicits._
-    val pos = y.where($"label" === 1).count()
-    val neg = y.where($"label" === 0).count()
-
-    val c = x.schema.fieldNames(0)
-
-    for (k <- x.distinct()) {
-      val pos_r = x.select(x(s"$c")).where(x(s"$c") === k && $"label" === 1).agg(Map("label" -> "sum")).first().get(0)
-      val neg_r = x.select(x(s"$c")).where(x(s"$c") === k && $"label" === 0).agg(Map("label" -> "sum")).first().get(0)
-
-      var woe1: Double = 0
-      if (pos_r equals 0) {
-        woe1 = woe_min
-      } else if (neg_r equals 0) {
-        woe1 = woe_max
-      } else {
-        woe1 = math.log(pos_r.asInstanceOf[Long] / neg_r.asInstanceOf[Long])
-      }
-      dmap += (k -> woe1)
-    }
-  }
+//  @deprecated
+//  def woe(x: DataFrame, y: DataFrame, woe_min: Int = 0, woe_max: Int) = {
+//    import x.sparkSession.implicits._
+//    val pos = y.where($"label" === 1).count()
+//    val neg = y.where($"label" === 0).count()
+//
+//    val c = x.schema.fieldNames(0)
+//
+//    for (k <- x.distinct()) {
+//      val pos_r = x.select(x(s"$c")).where(x(s"$c") === k && $"label" === 1).agg(Map("label" -> "sum")).first().get(0)
+//      val neg_r = x.select(x(s"$c")).where(x(s"$c") === k && $"label" === 0).agg(Map("label" -> "sum")).first().get(0)
+//
+//      var woe1: Double = 0
+//      if (pos_r equals 0) {
+//        woe1 = woe_min
+//      } else if (neg_r equals 0) {
+//        woe1 = woe_max
+//      } else {
+//        woe1 = math.log(pos_r.asInstanceOf[Long] / neg_r.asInstanceOf[Long])
+//      }
+//      dmap += (k -> woe1)
+//    }
+//  }
 
   @deprecated
   def fit(df: DataFrame, y: Any): Unit = {
@@ -125,7 +125,7 @@ class WOEIVEncoder(diff_thr: Int, woe_min: Int, woe_max: Int, nan_thr: Double, i
     for (c <- woecols) {
       var tmp = df.withColumn("label", df(s"$c"))
       tmp = tmp.na.drop()
-      val dmap = woe(tmp.select(tmp(c)), tmp.select(tmp("label")), woe_min, woe_max)
+//      val dmap = woe(tmp.select(tmp(c)), tmp.select(tmp("label")), woe_min, woe_max)
     }
   }
 }
