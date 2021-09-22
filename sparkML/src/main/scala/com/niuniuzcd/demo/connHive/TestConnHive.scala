@@ -27,8 +27,8 @@ import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects}
 object TestConnHive extends App {
 
   // warehouseLocation points to the default location for managed databases and tables
-  val warehouseLocation = new File("spark-warehouse").getAbsolutePath
-  val  remoteHourse = "hdfs://localhost:8020/user/hive/warehouse"
+//  val warehouseLocation = new File("spark-warehouse").getAbsolutePath
+//  val  remoteHourse = "hdfs://localhost:8020/user/hive/warehouse"
 //  new RegisterHiveSqlDialect().register();
   val spark = SparkSession
     .builder()
@@ -43,7 +43,14 @@ object TestConnHive extends App {
 
   import spark.implicits._
   import spark.sql
-  sql("show  databases").show()
+//  val st = sql("select * from gda_test.ml_test4 as st")
+//sql("set spark.sql.orc.impl=native")
+//sql("set spark.sql.hive.convertMetastoreOrc=true")
+  val st = sql("select * from ods_jg_jgxw_other_action")
+  st.show()
+  st.createOrReplaceTempView("st")
+  sql("select * from st").show()
+
 //  sql("CREATE TABLE IF NOT EXISTS src (key INT, value STRING) USING hive")
 //  sql("LOAD DATA LOCAL INPATH 'examples/src/main/resources/kv1.txt' INTO TABLE src")
 
@@ -51,19 +58,19 @@ object TestConnHive extends App {
 //  sql("SELECT * FROM src").show()
 
 //  val url = ""
-  val jdbcDF = spark.read
-    .format("jdbc")
-    .option("url", "jdbc:hive2://localhost:10000/dw")
-    .option("user", "hive")
-    .option("password", "hive")
-    .option("driver", "org.apache.hive.jdbc.HiveDriver")
-    .option("dbtable","ml_test")
-    .option("fetchsize", "100")
-    .load();
+//  val jdbcDF = spark.read
+//    .format("jdbc")
+//    .option("url", "jdbc:hive2://localhost:10000/dw")
+//    .option("user", "hive")
+//    .option("password", "hive")
+//    .option("driver", "org.apache.hive.jdbc.HiveDriver")
+//    .option("dbtable","ml_test")
+//    .option("fetchsize", "100")
+//    .load();
   //// String huser = cbcEncrypt("dgms" ,"$#0(@9_ec$5ald$&", "$#0(@9_ec$5ald$&");
   //// String hpwd = cbcEncrypt("gsww@20!8" ,"$#0(@9_ec$5ald$&", "$#0(@9_ec$5ald$&");
 //
-  jdbcDF.show()
+//  jdbcDF.show()
 
 //  sql("select * from gda_test.ml_test").show()
 }

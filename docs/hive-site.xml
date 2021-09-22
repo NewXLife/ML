@@ -1,0 +1,384 @@
+  <configuration>
+
+    <property>
+      <name>ambari.hive.db.schema.name</name>
+      <value>hive</value>
+    </property>
+
+    <property>
+      <name>atlas.cluster.name</name>
+      <value>demo200</value>
+    </property>
+
+    <property>
+      <name>atlas.rest.address</name>
+      <value>http://localhost:21000</value>
+    </property>
+
+    <property>
+      <name>datanucleus.autoCreateSchema</name>
+      <value>false</value>
+    </property>
+
+    <property>
+      <name>fs.file.impl.disable.cache</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>fs.hdfs.impl.disable.cache</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.async.log.enabled</name>
+      <value>false</value>
+    </property>
+
+    <property>
+      <name>hive.auto.convert.join</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.auto.convert.join.noconditionaltask</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.auto.convert.join.noconditionaltask.size</name>
+      <value>2147483648</value>
+    </property>
+
+    <property>
+      <name>hive.auto.convert.sortmerge.join</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.auto.convert.sortmerge.join.noconditionaltask</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.compactor.initiator.on</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.compactor.worker.threads</name>
+      <value>1</value>
+    </property>
+
+    <property>
+      <name>hive.default.fileformat</name>
+      <value>TextFile</value>
+    </property>
+
+    <property>
+      <name>hive.desensitization.enabled</name>
+      <value>false</value>
+    </property>
+
+    <property>
+      <name>hive.enforce.bucketing</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.enforce.sorting</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.exec.dynamic.partition.mode</name>
+      <value>nonstrict</value>
+    </property>
+
+    <property>
+      <name>hive.exec.query.redactor.hooks</name>
+      <value>org.apache.hadoop.hive.ql.hooks.ResourceChargingRedactorHook</value>
+    </property>
+
+    <property>
+      <name>hive.heapsize</name>
+      <value>4096</value>
+    </property>
+
+    <property>
+      <name>hive.map.aggr</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.mapjoin.bucket.cache.size</name>
+      <value>10000</value>
+    </property>
+
+    <property>
+      <name>hive.mapred.reduce.tasks.speculative.execution</name>
+      <value>false</value>
+    </property>
+
+    <property>
+      <name>hive.metastore.cache.pinobjtypes</name>
+      <value>Table,Database,Type,FieldSchema,Order</value>
+    </property>
+
+    <property>
+      <name>hive.metastore.client.socket.timeout</name>
+      <value>60</value>
+    </property>
+
+    <property>
+      <name>hive.metastore.connect.retries</name>
+      <value>5</value>
+    </property>
+
+    <property>
+      <name>hive.metastore.event.listeners</name>
+      <value>org.apache.sentry.binding.metastore.SentrySyncHMSNotificationsPostEventListener,org.apache.hive.hcatalog.listener.DbNotificationListener</value>
+    </property>
+
+    <property>
+      <name>hive.metastore.execute.setugi</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.metastore.filter.hook</name>
+      <value>org.apache.sentry.binding.metastore.SentryMetaStoreFilterHook</value>
+    </property>
+
+    <property>
+      <name>hive.metastore.pre.event.listeners</name>
+      <value>org.apache.sentry.binding.metastore.MetastoreAuthzBinding</value>
+    </property>
+
+    <property>
+      <name>hive.metastore.sasl.enabled</name>
+      <value>false</value>
+    </property>
+
+    <property>
+      <name>hive.metastore.uris</name>
+      <value>thrift://demo201.test.com:9083</value>
+    </property>
+
+    <property>
+      <name>hive.metastore.warehouse.dir</name>
+      <value>/apps/hive/warehouse</value>
+    </property>
+
+    <property>
+      <name>hive.optimize.bucketmapjoin</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.optimize.bucketmapjoin.sortedmerge</name>
+      <value>false</value>
+    </property>
+
+    <property>
+      <name>hive.optimize.index.filter</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.optimize.mapjoin.mapreduce</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.optimize.reducededuplication</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.optimize.reducededuplication.min.reducer</name>
+      <value>1</value>
+    </property>
+
+    <property>
+      <name>hive.security.authenticator.manager</name>
+      <value>org.apache.hadoop.hive.ql.security.ProxyUserAuthenticator</value>
+    </property>
+
+    <property>
+      <name>hive.security.authorization.enabled</name>
+      <value>false</value>
+    </property>
+
+    <property>
+      <name>hive.security.authorization.manager</name>
+      <value>org.apache.hadoop.hive.ql.security.authorization.StorageBasedAuthorizationProvider</value>
+    </property>
+
+    <property>
+      <name>hive.security.authorization.task.factory</name>
+      <value>org.apache.sentry.binding.hive.SentryHiveAuthorizationTaskFactoryImpl</value>
+    </property>
+
+    <property>
+      <name>hive.security.metastore.authorization.manager</name>
+      <value>org.apache.hadoop.hive.ql.security.authorization.StorageBasedAuthorizationProvider</value>
+    </property>
+
+    <property>
+      <name>hive.sentry.conf.url</name>
+      <value>file:///etc/hive/conf/sentry-site.xml</value>
+    </property>
+
+    <property>
+      <name>hive.server2.authentication</name>
+      <value>NONE</value>
+    </property>
+
+    <property>
+      <name>hive.server2.authentication.spnego.keytab</name>
+      <value>/etc/security/keytabs/spnego.service.keytab</value>
+    </property>
+
+    <property>
+      <name>hive.server2.authentication.spnego.principal</name>
+      <value>HTTP/_HOST@EXAMPLE.COM</value>
+    </property>
+
+    <property>
+      <name>hive.server2.enable.doAs</name>
+      <value>false</value>
+    </property>
+
+    <property>
+      <name>hive.server2.logging.operation.enabled</name>
+      <value>false</value>
+    </property>
+
+    <property>
+      <name>hive.server2.max.start.attempts</name>
+      <value>5</value>
+    </property>
+
+    <property>
+      <name>hive.server2.session.hook</name>
+      <value>org.apache.sentry.binding.hive.HiveAuthzBindingSessionHook</value>
+    </property>
+
+    <property>
+      <name>hive.server2.support.dynamic.service.discovery</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.server2.thrift.port</name>
+      <value>10000</value>
+    </property>
+
+    <property>
+      <name>hive.server2.transport.mode</name>
+      <value>binary</value>
+    </property>
+
+    <property>
+      <name>hive.server2.zookeeper.namespace</name>
+      <value>hiveserver2</value>
+    </property>
+
+    <property>
+      <name>hive.sql.column.encrypt.enabled</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.sql.datasecurity.auth.audit.url</name>
+      <value>http://demo200.test.com:8070/security/outerapi/v1/access/fields/privilege;http://demo200.test.com:8070/security/outerapi/v1/access/audit</value>
+    </property>
+
+    <property>
+      <name>hive.sql.encrypt.default.algorithm</name>
+      <value>aes</value>
+    </property>
+
+    <property>
+      <name>hive.stats.collect.scancols</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.support.concurrency</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.txn.manager</name>
+      <value>org.apache.hadoop.hive.ql.lockmgr.DbTxnManager</value>
+    </property>
+
+    <property>
+      <name>hive.vectorized.execution.enabled</name>
+      <value>true</value>
+    </property>
+
+    <property>
+      <name>hive.zookeeper.quorum</name>
+      <value>demo201.test.com:2181,demo200.test.com:2181,demo202.test.com:2181</value>
+    </property>
+
+    <property>
+      <name>javax.jdo.option.ConnectionDriverName</name>
+      <value>com.mysql.jdbc.Driver</value>
+    </property>
+
+    <property>
+      <name>javax.jdo.option.ConnectionPassword</name>
+      <value>hive</value>
+      <hidden>HIVE_CLIENT,WEBHCAT_SERVER,HCAT,CONFIG_DOWNLOAD</hidden>
+    </property>
+
+    <property>
+      <name>javax.jdo.option.ConnectionURL</name>
+      <value>jdbc:mysql://demo200.test.com:3306/hive?createDatabaseIfNotExist=true&amp;characterEncoding=UTF-8&amp;useSSL=false</value>
+    </property>
+
+    <property>
+      <name>javax.jdo.option.ConnectionUserName</name>
+      <value>hive</value>
+    </property>
+
+    <property>
+      <name>sentry.hdfs.service.client.server.rpc-address</name>
+      <value>demo201.test.com</value>
+    </property>
+
+    <property>
+      <name>sentry.hdfs.service.client.server.rpc-addresses</name>
+      <value>demo201.test.com</value>
+    </property>
+
+    <property>
+      <name>sentry.hdfs.service.client.server.rpc-port</name>
+      <value>8038</value>
+    </property>
+
+    <property>
+      <name>sentry.hdfs.service.security.mode</name>
+      <value>none</value>
+    </property>
+
+    <property>
+      <name>sentry.hdfs.service.server.principal</name>
+      <value></value>
+    </property>
+
+    <property>
+      <name>sentry.metastore.plugins</name>
+      <value> </value>
+    </property>
+
+    <property>
+      <name>yarn.resourcemanager.zk-address</name>
+      <value>demo201.test.com:2181,demo200.test.com:2181,demo202.test.com:2181</value>
+    </property>
+
+  </configuration>

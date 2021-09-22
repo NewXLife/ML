@@ -22,7 +22,7 @@ public class TestCalc
 {
     /**
      * Listener 和 Visitor是两种遍历模式
-     * 1、Listener (观察者模式，通过结点监听，触发处理方法)
+     * 1、Listener (通过结点监听，触发处理方法)
      * 程序员不需要显示定义遍历语法树的顺序，实现简单
      * 缺点，不能显示控制遍历语法树的顺序
      * 动作代码与文法产生式解耦，利于文法产生式的重用
@@ -30,7 +30,7 @@ public class TestCalc
      *
      * 2、Visitor (访问者模式，主动遍历)
      * 程序员可以显示定义遍历语法树的顺序
-     * 不需要与antlr遍历类ParseTreeWalker一起使用，直接对tree操作
+     * 不需要与antlr遍历类 ParseTreeWalker 一起使用，直接对tree操作
      * 动作代码与文法产生式解耦，利于文法产生式的重用
      * visitor方法可以直接返回值，返回值的类型必须一致，不需要使用map这种节点间传值方式，效率高
      * @param args
@@ -40,7 +40,7 @@ public class TestCalc
 
         /**
          * 一个语言的解析过程一般过程是 词法分析-->语法分析。
-         * 这是ANTLR4为我们生成的框架代码，而我们唯一要做的是自己实现一个Vistor，一般从ExprBaseVistor继承即可
+         * 这是ANTLR4为我们生成的框架代码，而我们唯一要做的是自己实现一个Vistor，一般从 ExprBaseVistor 继承即可
          */
         CharStream input = CharStreams.fromString("(((3+10-5)*2/5-100) + 10)*2-20 ;");
 
